@@ -42,6 +42,8 @@ has 'state'   => ( isa => 'Str', is => 'ro', required => 1 );
 has 'core_id' => ( isa => 'Num', is => 'ro', required => 1 );
 # Chip (Socket) ID
 has 'chip_id' => ( isa => 'Num', is => 'ro', required => 1 );
+# PG ID (not sure this is that useful at the moment - mpstat uses it)
+has 'pg_id'   => ( isa => 'Num', is => 'ro', required => 1 );
 
 # Constructor 
 #   Dependency Injection:
