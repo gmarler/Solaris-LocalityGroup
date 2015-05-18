@@ -33,11 +33,15 @@ class_has 'Cache' =>
 # Instance Attributes
 #
 # CPU ID (vCPU)
-has 'id'    => ( isa => 'Num', is => 'ro', required => 1 );
+has 'id'      => ( isa => 'Num', is => 'ro', required => 1 );
 # CPU Description
-has 'brand' => ( isa => 'Str', is => 'ro', required => 1 );
+has 'brand'   => ( isa => 'Str', is => 'ro', required => 1 );
 # CPU State
-has 'state' => ( isa => 'Str', is => 'ro', required => 1 );
+has 'state'   => ( isa => 'Str', is => 'ro', required => 1 );
+# CORE ID
+has 'core_id' => ( isa => 'Num', is => 'ro', required => 1 );
+# Chip (Socket) ID
+has 'chip_id' => ( isa => 'Num', is => 'ro', required => 1 );
 
 # Constructor 
 #   Dependency Injection:
@@ -50,7 +54,7 @@ has 'state' => ( isa => 'Str', is => 'ro', required => 1 );
 sub new_from_kstat {
   my $self = shift;
 
-  my $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|cpu_type|device_ID|pg_id|state|state_begin\)\$/'};
+  my $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
 
   my $specs_aref = __PACKAGE__->_parse_kstat_cpu_info($stdout);
   my @objs       = map { __PACKAGE__->new(%$_) } @$specs_aref;

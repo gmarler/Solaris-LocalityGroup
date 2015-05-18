@@ -68,9 +68,9 @@ sub test_parse_kstat_cpu_info {
 
   my $aref = Solaris::CPU->_parse_kstat_cpu_info($stdout);
 
-  my $d = Data::Dumper->new( $aref );
-
+  #my $d = Data::Dumper->new( $aref );
   #diag $d->Dump;
+
   my $id_re = re('^\d+$');
   my $cpu_cmp = {
     id => $id_re,
@@ -91,9 +91,8 @@ sub test_new_from_kstat {
 
   cmp_deeply( $aref, array_each( isa('Solaris::CPU') ) );
 
-  my $d = Data::Dumper->new( $aref );
-
-  diag $d->Dump;
+  #my $d = Data::Dumper->new( $aref );
+  #diag $d->Dump;
 }
 
 
