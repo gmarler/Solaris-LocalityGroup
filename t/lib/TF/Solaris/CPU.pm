@@ -72,16 +72,18 @@ sub test_parse_kstat_cpu_info {
   #diag $d->Dump;
 
   my $id_re = re('^\d+$');
+  my $state_re = re('on-line|off-line|spare|no-intr');
+
   my $cpu_cmp = {
     id          => $id_re,
     brand       => ignore(),
-    chip_id     => ignore(),
+    chip_id     => $id_re,
     #core_id     => ignore(),
-    device_ID   => ignore(),
+    device_ID   => $id_re,
     cpu_type    => ignore(),
-    pg_id       => ignore(),
-    state       => ignore(),
-    state_begin => ignore(),
+    pg_id       => $id_re,
+    state       => $state_re,
+    state_begin => $id_re,
   };
  
   cmp_deeply( $aref,
