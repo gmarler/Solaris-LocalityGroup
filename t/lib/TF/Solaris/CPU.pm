@@ -94,9 +94,6 @@ sub test_parse_kstat_cpu_info {
               array_each( $cpu_cmp ),
               'Parsed data has right hash format'
             );
-  #foreach my $e (@$aref) {
-  #  cmp_deeply( $e, any( hash_each( $cpu_cmp ) ) );
-  #}
 }
 
 sub test_new_from_kstat {
