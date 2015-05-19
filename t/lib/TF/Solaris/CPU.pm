@@ -73,11 +73,24 @@ sub test_parse_kstat_cpu_info {
 
   my $id_re = re('^\d+$');
   my $cpu_cmp = {
-    id => $id_re,
+    id          => $id_re,
+    brand       => ignore(),
+    chip_id     => ignore(),
+    #core_id     => ignore(),
+    device_ID   => ignore(),
+    cpu_type    => ignore(),
+    pg_id       => ignore(),
+    state       => ignore(),
+    state_begin => ignore(),
   };
  
   cmp_deeply( $aref,
-              array_each( isa('HASH') )
+              array_each( isa('HASH') ),
+              'Data Parsing produces array of hashrefs'
+            );
+  cmp_deeply( $aref,
+              array_each( $cpu_cmp ),
+              'Parsed data has right hash format'
             );
   #foreach my $e (@$aref) {
   #  cmp_deeply( $e, any( hash_each( $cpu_cmp ) ) );
