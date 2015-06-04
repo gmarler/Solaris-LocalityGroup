@@ -1,6 +1,8 @@
+package Solaris::CPU::vCPU;
+
 use strict;
 use warnings;
 
-package Solaris::CPU::vCPU;
+# VERSION
 
 1;

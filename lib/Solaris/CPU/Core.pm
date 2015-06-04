@@ -1,6 +1,8 @@
+package Solaris::CPU::Core;
+
 use strict;
 use warnings;
 
-package Solaris::CPU::Core;
+# VERSION
 
 1;

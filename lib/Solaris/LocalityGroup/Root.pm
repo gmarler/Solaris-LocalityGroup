@@ -1,6 +1,8 @@
+package Solaris::LocalityGroup::Root;
+
 use strict;
 use warnings;
 
-package Solaris::LocalityGroup::Root;
+# VERSION
 
 1;

@@ -7,6 +7,8 @@ package Solaris::LocalityGroup;
 
 # VERSION
 #
+# ABSTRACT: Solaris Locality Group (NUMA node) abstraction
+
 use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::ClassAttribute;
@@ -25,6 +27,8 @@ Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 # Instance Attributes
 #
 # Locality Group Type
+# TODO: This has been replaced by having LocalityGroup::{Root|Leaf} subclasses instead
+#       Clean this up
 has 'type'      => ( isa => enum([ qw( root leaf ) ]), is => 'ro', required => 1 );
 
 # has 'lgrps'     => ( isa => 
