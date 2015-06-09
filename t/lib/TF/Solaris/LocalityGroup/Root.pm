@@ -65,6 +65,9 @@ sub test_attrs {
   isa_ok($obj, 'Solaris::LocalityGroup::Root', 'object is of proper class');
 
   can_ok($obj, qw( lgrps ) );
+
+  # TODO: Test that returned Locality Group Leaves are valid
+  my $leaves = $obj->lgrps;
 }
 
 1;
