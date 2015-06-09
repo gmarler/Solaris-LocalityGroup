@@ -6,7 +6,7 @@ use Test::Class::Moose::Runner;
 # Everything:
 #   prove -lv t/tests.t
 # Individual test:
-#   prove -lv t/tests.t :: TF::Solaris::PerfParser::ZpoolLatency
+#   prove -lv t/tests.t :: TF::Solaris::LocalityGroup::Root
 #
 my $test_suite = Test::Class::Moose::Runner->new(
   show_timing  => 0,

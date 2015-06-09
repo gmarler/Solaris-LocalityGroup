@@ -27,12 +27,17 @@ Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 # Instance Attributes
 #
 
-has 'lgrps'     => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]',
+has 'lgrps'     => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
                      is => 'ro',
                      builder => '_build_lgrp_leaves',
                    );
 
 
+sub _build_lgrp_leaves {
+  my $self = shift;
+
+  return undef;
+}
 
 1;
 
