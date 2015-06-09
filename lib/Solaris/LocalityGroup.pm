@@ -33,6 +33,13 @@ has 'type'      => ( isa => enum([ qw( root leaf ) ]), is => 'ro', required => 1
 
 # has 'lgrps'     => ( isa => 
 
+#
+# TODO:
+# Move all this to Solaris::LocalityGroup::Root, which represents a system as a
+# whole, including all Locality Group Leaves, and the Cores / vCPUs they contain
+#
+# In that, we'll use both lgrpinfo and kstat data to construct everything
+#
 sub new_from_lgrpinfo {
   my $self = shift;
 
