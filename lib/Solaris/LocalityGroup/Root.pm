@@ -39,7 +39,11 @@ sub _build_lgrp_leaves {
   my $stdout = qx{$LGRPINFO -cCG};
   # TODO: if command failed, generate an exception
 
-  my $specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
+  my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
+
+  $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
+
+  my $cpu_specs_aref  = __PACKAGE__->_parse_kstat_cpu_info($stdout);
   #my @objs       = map { __PACKAGE__->new(%$_) } @$specs_aref;
 
   # Add to Class Object Cache attribute, for ease of lookups later
@@ -85,6 +89,45 @@ sub _parse_lgrpinfo {
 
   return \@con_args;
 }
+
+sub _parse_kstat_cpu_info {
+  my $self       = shift;
+  my $c          = shift;
+  my @con_args;
+
+  my (@lines) = split /\n/, $c;
+
+  my (%cpu_constructor_args);
+  # Parse each individual property line for this datalink
+  foreach my $line (@lines) {
+    my ($cpu_id,$key);
+
+    my ($keypart, $value) = split /\s+/, $line;
+    #say "KEYPART: $keypart";
+    #say "VALUE:   $value";
+
+    ($cpu_id = $keypart) =~ s{^cpu_info:(\d+):.+$}{$1};
+
+    #say "CPU ID: $cpu_id";
+
+    ($key = $keypart) =~ s{^cpu_info:$cpu_id:[^:]+:(\S+)$}{$1};
+
+    #say "KEY $key";
+
+    $cpu_constructor_args{$cpu_id}->{$key} = $value;
+  }
+
+  @con_args = map { my $cpu_id = $_;
+                    { id => $cpu_id,
+                      map {
+                        $_ => $cpu_constructor_args{$cpu_id}->{$_};
+                      } keys $cpu_constructor_args{$cpu_id},
+                    };
+                  } keys %cpu_constructor_args;
+
+  return \@con_args;
+}
+
 
 
 
