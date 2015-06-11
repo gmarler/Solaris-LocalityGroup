@@ -45,7 +45,12 @@ sub test_startup {
 
   my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
 
-  $test->{ctor_args} = $lgrp_specs_aref;
+  $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
+
+  my $cpu_specs_aref  = __PACKAGE__->_parse_kstat_cpu_info($stdout);
+
+  $test->{ctor_args}  = $lgrp_specs_aref;
+  $test->{kstat_args} = $cpu_specs_aref;
 }
 
 sub test_setup {
@@ -98,9 +103,6 @@ sub _parse_lgrpinfo {
       }smx;
 
   while ($c =~ m/$re/gsmx) {
-    # say "LGroup: " . $+{lgroup};
-    # say "First CPU: " . $+{cpufirst};
-    # say "Last  CPU: " . $+{cpulast};
     my $href = { lgrp     => $+{lgroup},
                  cpufirst => $+{cpufirst},
                  cpulast  => $+{cpulast},
@@ -119,21 +121,16 @@ sub _parse_kstat_cpu_info {
   my (@lines) = split /\n/, $c;
 
   my (%cpu_ctor_args);
+
   # Parse each individual property line for this datalink
   foreach my $line (@lines) {
     my ($cpu_id,$key);
 
     my ($keypart, $value) = split /\s+/, $line;
-    #say "KEYPART: $keypart";
-    #say "VALUE:   $value";
 
     ($cpu_id = $keypart) =~ s{^cpu_info:(\d+):.+$}{$1};
 
-    #say "CPU ID: $cpu_id";
-
     ($key = $keypart) =~ s{^cpu_info:$cpu_id:[^:]+:(\S+)$}{$1};
-
-    #say "KEY $key";
 
     $cpu_ctor_args{$cpu_id}->{$key} = $value;
   }

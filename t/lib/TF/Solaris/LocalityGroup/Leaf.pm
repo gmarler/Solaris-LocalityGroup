@@ -125,9 +125,6 @@ sub _parse_lgrpinfo {
       }smx;
 
   while ($c =~ m/$re/gsmx) {
-    # say "LGroup: " . $+{lgroup};
-    # say "First CPU: " . $+{cpufirst};
-    # say "Last  CPU: " . $+{cpulast};
     my $href = { lgrp     => $+{lgroup},
                  cpufirst => $+{cpufirst},
                  cpulast  => $+{cpulast},
@@ -146,23 +143,18 @@ sub _parse_kstat_cpu_info {
   my (@lines) = split /\n/, $c;
 
   my (%cpu_ctor_args);
+
   # Parse each individual property line for this datalink
   foreach my $line (@lines) {
     my ($cpu_id,$key);
 
     my ($keypart, $value) = split /\s+/, $line;
-    #say "KEYPART: $keypart";
-    #say "VALUE:   $value";
 
     ($cpu_id = $keypart) =~ s{^cpu_info:(\d+):.+$}{$1};
 
-    #say "CPU ID: $cpu_id";
+   ($key = $keypart) =~ s{^cpu_info:$cpu_id:[^:]+:(\S+)$}{$1};
 
-    ($key = $keypart) =~ s{^cpu_info:$cpu_id:[^:]+:(\S+)$}{$1};
-
-    #say "KEY $key";
-
-    $cpu_ctor_args{$cpu_id}->{$key} = $value;
+   $cpu_ctor_args{$cpu_id}->{$key} = $value;
   }
 
   @ctor_args = map { my $cpu_id = $_;
