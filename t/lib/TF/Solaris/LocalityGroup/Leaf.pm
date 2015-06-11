@@ -9,6 +9,7 @@ use Data::Dumper             qw();
 
 use Test::Class::Moose;
 with 'Test::Class::Moose::Role::AutoUse';
+use Test::Output;
 
 Readonly::Scalar my $KSTAT  => '/bin/kstat';
 Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
@@ -44,6 +45,12 @@ sub test_startup {
 
   #$test->{sockpath} = "/tmp/test_glogserver_sockpath.sock-$$";
   #diag "Test socket path will be $test->{sockpath}";
+  #
+  my $stdout = qx{$LGRPINFO -cCG};
+
+  my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
+
+  $test->{ctor_args} = $lgrp_specs_aref;
 }
 
 sub test_setup {
@@ -70,14 +77,14 @@ sub test_empty_constructor {
 sub test_good_constructor {
   my $test = shift;
 
-  my $stdout = qx{$LGRPINFO -cCG};
+  my $ctor_args = $test->{ctor_args};
 
-  my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
-
-  my $lgrp_con_args = shift @$lgrp_specs_aref;
+  my $lgrp_ctor_args = $ctor_args->[0];
 
   my $leaf = Solaris::LocalityGroup::Leaf->new(
-               lgrp  => $lgrp_con_args,
+               id        => $lgrp_ctor_args->{'lgrp'},
+               cpu_range => [ $lgrp_ctor_args->{cpufirst},
+                              $lgrp_ctor_args->{cpulast}, ],
              );
 
   isa_ok($leaf, 'Solaris::LocalityGroup::Leaf', 'object is of proper class');
@@ -85,27 +92,50 @@ sub test_good_constructor {
   can_ok($leaf, qw( id ) );
 }
 
+sub test_print {
+  my $test = shift;
+
+  my $ctor_args = $test->{ctor_args};
+
+  my $lgrp_ctor_args = $ctor_args->[0];
+
+  my $leaf = Solaris::LocalityGroup::Leaf->new(
+               id        => $lgrp_ctor_args->{'lgrp'},
+               cpu_range => [ $lgrp_ctor_args->{cpufirst},
+                              $lgrp_ctor_args->{cpulast}, ],
+             );
+
+  can_ok($leaf, qw( print ) );
+
+  stdout_like( sub { $leaf->print }, qr/^Locality\sGroup:/,
+              'locality group header');
+  stdout_like( sub { $leaf->print }, qr/^CPU\sRANGE:\s\d+[-]\d+/m,
+              'CPU range line');
+}
+
 # Stolen from Solaris::LocalityGroup::Root
 sub _parse_lgrpinfo {
   my $self       = shift;
   my $c          = shift;
-  my @con_args;
+  my @ctor_args;
 
   my $re =
     qr{^lgroup \s+ (?<lgroup>\d+) \s+ \(leaf\):\n
-       ^ \s+ CPUs: \s+ (?<cpus>\d+-\d+)   \n
+       ^ \s+ CPUs: \s+ (?<cpufirst>\d+)-(?<cpulast>\d+)   \n
       }smx;
 
   while ($c =~ m/$re/gsmx) {
     say "LGroup: " . $+{lgroup};
-    say "CPUs " . $+{cpus};
-    my $href = { lgrp => $+{lgroup},
-                 lgrpinfo_cpus => $+{cpus},
+    say "First CPU: " . $+{cpufirst};
+    say "Last  CPU: " . $+{cpulast};
+    my $href = { lgrp     => $+{lgroup},
+                 cpufirst => $+{cpufirst},
+                 cpulast  => $+{cpulast},
                };
-    push @con_args, $href;
+    push @ctor_args, $href;
   }
 
-  return \@con_args;
+  return \@ctor_args;
 }
 
 

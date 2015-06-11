@@ -47,10 +47,12 @@ sub _build_lgrp_leaves {
 
   my $cpu_specs_aref  = __PACKAGE__->_parse_kstat_cpu_info($stdout);
 
-  foreach my $lgrp_con_args (@$lgrp_specs_aref) {
+  foreach my $lgrp_ctor_args (@$lgrp_specs_aref) {
     # TODO: Add CPU data specific to the leaf to the constructor args
     my $leaf = Solaris::LocalityGroup::Leaf->new(
-                 lgrp  => $lgrp_con_args,
+                 id        => $lgrp_ctor_args->{lgrp},
+                 cpu_range => [ $lgrp_ctor_args->{cpufirst},
+                                $lgrp_ctor_args->{cpulast}, ],
     #            cores => $cpu_specs_aref,
                );
   }
@@ -81,33 +83,36 @@ sub _build_lgrp_leaves {
 sub _parse_lgrpinfo {
   my $self       = shift;
   my $c          = shift;
-  my @con_args;
+  my @ctor_args;
 
   my $re =
     qr{^lgroup \s+ (?<lgroup>\d+) \s+ \(leaf\):\n
-       ^ \s+ CPUs: \s+ (?<cpus>\d+-\d+)   \n
+       ^ \s+ CPUs: \s+ (?<cpufirst>\d+)-(?<cpulast>\d+)   \n
       }smx;
 
   while ($c =~ m/$re/gsmx) {
     say "LGroup: " . $+{lgroup};
-    say "CPUs " . $+{cpus};
-    my $href = { lgrp => $+{lgroup},
-                 lgrpinfo_cpus => $+{cpus},
+    say "First CPU: " . $+{cpufirst};
+    say "Last  CPU: " . $+{cpulast};
+    my $href = { lgrp     => $+{lgroup},
+                 cpufirst => $+{cpufirst},
+                 cpulast  => $+{cpulast},
                };
-    push @con_args, $href;
+    push @ctor_args, $href;
   }
 
-  return \@con_args;
+  return \@ctor_args;
 }
+
 
 sub _parse_kstat_cpu_info {
   my $self       = shift;
   my $c          = shift;
-  my @con_args;
+  my @ctor_args;
 
   my (@lines) = split /\n/, $c;
 
-  my (%cpu_constructor_args);
+  my (%cpu_ctor_args);
   # Parse each individual property line for this datalink
   foreach my $line (@lines) {
     my ($cpu_id,$key);
@@ -124,20 +129,20 @@ sub _parse_kstat_cpu_info {
 
     #say "KEY $key";
 
-    $cpu_constructor_args{$cpu_id}->{$key} = $value;
+    $cpu_ctor_args{$cpu_id}->{$key} = $value;
   }
 
-  @con_args = map { my $cpu_id = $_;
+  @ctor_args = map { my $cpu_id = $_;
                     { id => $cpu_id,
                       map {
-                        $_ => $cpu_constructor_args{$cpu_id}->{$_};
-                      } keys $cpu_constructor_args{$cpu_id},
+                        $_ => $cpu_ctor_args{$cpu_id}->{$_};
+                      } keys $cpu_ctor_args{$cpu_id},
                     };
-                  } keys %cpu_constructor_args;
+                  } keys %cpu_ctor_args;
 
-  say Dumper(\@con_args);
+  say Dumper(\@ctor_args);
 
-  return \@con_args;
+  return \@ctor_args;
 }
 
 

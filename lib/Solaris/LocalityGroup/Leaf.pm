@@ -40,6 +40,11 @@ has 'cores'     => ( isa => 'HashRef[Solaris::CPU::Core]|Undef',
                      # init_arg => cpu_info_data,
                    );
 
+has 'cpu_range' => ( isa      => 'ArrayRef[Int]',
+                     is       => 'ro',
+                     required => 1,
+                   );
+
 has 'cpus'      => ( isa => 'HashRef[Solaris::CPU::vCPU]|Undef',
                      is  => 'ro',
                    );
@@ -53,11 +58,11 @@ override BUILDARGS => sub {
 
   # We're passing in lgrp => { lgrp => <ID>, lgrpinfo_cpus => ... }, so we need to
   # deal with it as such (two levels of indirection)
-  if (exists($args{'lgrp'})) {
-    my $id = $args{'lgrp'}->{'lgrp'};
-    delete $args{'lgrp'};
-    return { id => $id, %args };
-  }
+  #if (exists($args{'lgrp'})) {
+  #  my $id = $args{'lgrp'};
+  #  delete $args{'lgrp'};
+  #  return { id => $id, %args };
+  #}
 
   return super;
 };
@@ -81,6 +86,8 @@ sub print
 {
   my $self = shift;
 
+  say "Locality Group: " . $self->id;
+  say "CPU RANGE: " . $self->cpu_range->[0] . "-" . $self->cpu_range->[1];
 }
 
 =head1 PRIVATE Methods
@@ -89,9 +96,9 @@ sub print
 
 # sub _build_id {
 #   my $self     = shift;
-#   my $con_args = shift;
+#   my $ctor_args = shift;
 # 
-#   my $id = $con_args->{lgrp};
+#   my $id = $ctor_args->{lgrp};
 # 
 #   say "Building Locality Group Leaf: $id";
 # 
