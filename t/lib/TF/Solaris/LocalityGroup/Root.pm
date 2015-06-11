@@ -6,6 +6,7 @@ use Data::Dumper             qw();
 
 use Test::Class::Moose;
 with 'Test::Class::Moose::Role::AutoUse';
+use Test::Output;
 
 Readonly::Scalar my $KSTAT  => '/bin/kstat';
 
@@ -66,8 +67,16 @@ sub test_attrs {
 
   can_ok($obj, qw( lgrps ) );
 
-  # TODO: Test that returned Locality Group Leaves are valid
+  # Test that returned Locality Group Leaves are valid
   my $leaves = $obj->lgrps;
+  isa_ok($leaves, 'ARRAY' );
+
+  my @leaves = @{$leaves};
+  cmp_deeply(\@leaves, array_each(isa("Solaris::LocalityGroup::Leaf")),
+             'LG leaves are of the proper object type');
+
+  stdout_like( sub { $obj->print }, qr/Locality\sGroup:/,
+              'printing LG leaves ok');
 }
 
 1;

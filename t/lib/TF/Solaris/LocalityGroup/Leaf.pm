@@ -125,9 +125,9 @@ sub _parse_lgrpinfo {
       }smx;
 
   while ($c =~ m/$re/gsmx) {
-    say "LGroup: " . $+{lgroup};
-    say "First CPU: " . $+{cpufirst};
-    say "Last  CPU: " . $+{cpulast};
+    # say "LGroup: " . $+{lgroup};
+    # say "First CPU: " . $+{cpufirst};
+    # say "Last  CPU: " . $+{cpulast};
     my $href = { lgrp     => $+{lgroup},
                  cpufirst => $+{cpufirst},
                  cpulast  => $+{cpulast},

@@ -34,9 +34,31 @@ has 'lgrps'     => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
                      builder => '_build_lgrp_leaves',
                    );
 
+=head2 PUBLIC Methods
+
+=method print
+
+Print out information on this leaf Locality Gruop
+
+=cut
+
+sub print {
+  my $self = shift;
+
+  my @leaves = @{$self->lgrps};
+
+  foreach my $leaf (@leaves) {
+    $leaf->print;
+  }
+}
+
+=head1 PRIVATE Methods
+
+=cut
 
 sub _build_lgrp_leaves {
   my $self = shift;
+  my @leaves;
 
   my $stdout = qx{$LGRPINFO -cCG};
   # TODO: if command failed, generate an exception
@@ -55,6 +77,7 @@ sub _build_lgrp_leaves {
                                 $lgrp_ctor_args->{cpulast}, ],
     #            cores => $cpu_specs_aref,
                );
+    push @leaves, $leaf; 
   }
   #my @objs       = map { __PACKAGE__->new(%$_) } @$specs_aref;
 
@@ -66,7 +89,7 @@ sub _build_lgrp_leaves {
   # TODO: wantarray() handling
   #return \@objs;
 
-  return undef;
+  return \@leaves;
 }
 
 #

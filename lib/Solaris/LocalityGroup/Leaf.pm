@@ -67,12 +67,12 @@ override BUILDARGS => sub {
   return super;
 };
 
-sub BUILD {
-  my $self = shift;
-
-  my $id = $self->id;
-  say "Building Locality Group Leaf: $id";
-}
+# sub BUILD {
+#   my $self = shift;
+# 
+#   my $id = $self->id;
+#   say "Building Locality Group Leaf: $id";
+# }
 
 =head2 PUBLIC Methods
 
