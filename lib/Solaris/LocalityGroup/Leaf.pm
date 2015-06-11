@@ -30,10 +30,8 @@ Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 # Instance Attributes
 #
 
-has 'id'        => ( isa      => Int,
+has 'id'        => ( isa      => 'Int',
                      is       => 'ro',
-                     init_arg => 'lgrp',
-                     builder  => '_build_id',
                    );
 
 has 'cores'     => ( isa => 'HashRef[Solaris::CPU::Core]|Undef',
@@ -44,6 +42,31 @@ has 'cores'     => ( isa => 'HashRef[Solaris::CPU::Core]|Undef',
 has 'cpus'      => ( isa => 'HashRef[Solaris::CPU::vCPU]|Undef',
                      is  => 'ro',
                    );
+
+override BUILDARGS => sub {
+  my $self = shift;
+
+  my %args = @_;
+
+  say Dumper(\%args);
+
+  # We're passing in lgrp => { lgrp => <ID>, lgrpinfo_cpus => ... }, so we need to
+  # deal with it as such (two levels of indirection)
+  if (exists($args{'lgrp'})) {
+    my $id = $args{'lgrp'}->{'lgrp'};
+    delete $args{'lgrp'};
+    return { id => $id, %args };
+  }
+
+  return super;
+};
+
+sub BUILD {
+  my $self = shift;
+
+  my $id = $self->id;
+  say "Building Locality Group Leaf: $id";
+}
 
 =head2 PUBLIC Methods
 
@@ -63,15 +86,15 @@ sub print
 
 =cut
 
-sub _build_id {
-  my $self     = shift;
-  my $con_args = shift;
-
-  my $id = $con_args->{lgrp};
-
-  say "Building Locality Group Leaf: $id";
-
-  return $id;
-}
+# sub _build_id {
+#   my $self     = shift;
+#   my $con_args = shift;
+# 
+#   my $id = $con_args->{lgrp};
+# 
+#   say "Building Locality Group Leaf: $id";
+# 
+#   return $id;
+# }
 
 1;

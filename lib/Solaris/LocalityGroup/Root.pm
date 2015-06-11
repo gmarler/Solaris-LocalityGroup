@@ -50,8 +50,8 @@ sub _build_lgrp_leaves {
   foreach my $lgrp_con_args (@$lgrp_specs_aref) {
     # TODO: Add CPU data specific to the leaf to the constructor args
     my $leaf = Solaris::LocalityGroup::Leaf->new(
-                 lgrp  => shift @$lgrp_con_args,
-                 cores => $cpu_specs_aref,
+                 lgrp  => $lgrp_con_args,
+    #            cores => $cpu_specs_aref,
                );
   }
   #my @objs       = map { __PACKAGE__->new(%$_) } @$specs_aref;
