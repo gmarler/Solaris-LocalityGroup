@@ -32,6 +32,7 @@ Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 
 has 'id'        => ( isa      => 'Int',
                      is       => 'ro',
+                     required => 1,
                    );
 
 has 'cores'     => ( isa => 'HashRef[Solaris::CPU::Core]|Undef',
