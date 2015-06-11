@@ -41,6 +41,11 @@ sub test_startup {
 
   #$test->{sockpath} = "/tmp/test_glogserver_sockpath.sock-$$";
   #diag "Test socket path will be $test->{sockpath}";
+  my $stdout = qx{$LGRPINFO -cCG};
+
+  my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
+
+  $test->{ctor_args} = $lgrp_specs_aref;
 }
 
 sub test_setup {
@@ -77,6 +82,73 @@ sub test_attrs {
 
   stdout_like( sub { $obj->print }, qr/Locality\sGroup:/,
               'printing LG leaves ok');
+}
+
+
+
+# Stolen from Solaris::LocalityGroup::Root
+sub _parse_lgrpinfo {
+  my $self       = shift;
+  my $c          = shift;
+  my @ctor_args;
+
+  my $re =
+    qr{^lgroup \s+ (?<lgroup>\d+) \s+ \(leaf\):\n
+       ^ \s+ CPUs: \s+ (?<cpufirst>\d+)-(?<cpulast>\d+)   \n
+      }smx;
+
+  while ($c =~ m/$re/gsmx) {
+    # say "LGroup: " . $+{lgroup};
+    # say "First CPU: " . $+{cpufirst};
+    # say "Last  CPU: " . $+{cpulast};
+    my $href = { lgrp     => $+{lgroup},
+                 cpufirst => $+{cpufirst},
+                 cpulast  => $+{cpulast},
+               };
+    push @ctor_args, $href;
+  }
+
+  return \@ctor_args;
+}
+
+sub _parse_kstat_cpu_info {
+  my $self       = shift;
+  my $c          = shift;
+  my @ctor_args;
+
+  my (@lines) = split /\n/, $c;
+
+  my (%cpu_ctor_args);
+  # Parse each individual property line for this datalink
+  foreach my $line (@lines) {
+    my ($cpu_id,$key);
+
+    my ($keypart, $value) = split /\s+/, $line;
+    #say "KEYPART: $keypart";
+    #say "VALUE:   $value";
+
+    ($cpu_id = $keypart) =~ s{^cpu_info:(\d+):.+$}{$1};
+
+    #say "CPU ID: $cpu_id";
+
+    ($key = $keypart) =~ s{^cpu_info:$cpu_id:[^:]+:(\S+)$}{$1};
+
+    #say "KEY $key";
+
+    $cpu_ctor_args{$cpu_id}->{$key} = $value;
+  }
+
+  @ctor_args = map { my $cpu_id = $_;
+                    { id => $cpu_id,
+                      map {
+                        $_ => $cpu_ctor_args{$cpu_id}->{$_};
+                      } keys $cpu_ctor_args{$cpu_id},
+                    };
+                  } keys %cpu_ctor_args;
+
+  say Dumper(\@ctor_args);
+
+  return \@ctor_args;
 }
 
 1;

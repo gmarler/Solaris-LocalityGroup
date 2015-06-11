@@ -138,5 +138,45 @@ sub _parse_lgrpinfo {
   return \@ctor_args;
 }
 
+sub _parse_kstat_cpu_info {
+  my $self       = shift;
+  my $c          = shift;
+  my @ctor_args;
+
+  my (@lines) = split /\n/, $c;
+
+  my (%cpu_ctor_args);
+  # Parse each individual property line for this datalink
+  foreach my $line (@lines) {
+    my ($cpu_id,$key);
+
+    my ($keypart, $value) = split /\s+/, $line;
+    #say "KEYPART: $keypart";
+    #say "VALUE:   $value";
+
+    ($cpu_id = $keypart) =~ s{^cpu_info:(\d+):.+$}{$1};
+
+    #say "CPU ID: $cpu_id";
+
+    ($key = $keypart) =~ s{^cpu_info:$cpu_id:[^:]+:(\S+)$}{$1};
+
+    #say "KEY $key";
+
+    $cpu_ctor_args{$cpu_id}->{$key} = $value;
+  }
+
+  @ctor_args = map { my $cpu_id = $_;
+                    { id => $cpu_id,
+                      map {
+                        $_ => $cpu_ctor_args{$cpu_id}->{$_};
+                      } keys $cpu_ctor_args{$cpu_id},
+                    };
+                  } keys %cpu_ctor_args;
+
+  say Dumper(\@ctor_args);
+
+  return \@ctor_args;
+}
+
 
 1;
