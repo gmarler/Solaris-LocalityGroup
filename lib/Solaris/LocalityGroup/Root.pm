@@ -13,6 +13,8 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::ClassAttribute;
 with 'MooseX::Log::Log4perl';
+use Data::Dumper;
+use Solaris::LocalityGroup::Leaf;
 
 use namespace::autoclean;
 
@@ -44,6 +46,11 @@ sub _build_lgrp_leaves {
   $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
 
   my $cpu_specs_aref  = __PACKAGE__->_parse_kstat_cpu_info($stdout);
+
+  foreach my $lgrp_con_args (@$lgrp_specs_aref) {
+    # TODO: Add CPU data specific to the leaf to the constructor args
+    my $leaf = Solaris::LocalityGroup::Leaf->new( $lgrp_con_args );
+  }
   #my @objs       = map { __PACKAGE__->new(%$_) } @$specs_aref;
 
   # Add to Class Object Cache attribute, for ease of lookups later
@@ -124,6 +131,8 @@ sub _parse_kstat_cpu_info {
                       } keys $cpu_constructor_args{$cpu_id},
                     };
                   } keys %cpu_constructor_args;
+
+  say Dumper(\@con_args);
 
   return \@con_args;
 }
