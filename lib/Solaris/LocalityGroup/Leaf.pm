@@ -13,7 +13,7 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::ClassAttribute;
 with 'MooseX::Log::Log4perl';
-use Data::Dumper;
+use Data::Dumper               qw();
 use Solaris::CPU::Core;
 use Solaris::CPU::vCPU;
 
@@ -54,15 +54,18 @@ override BUILDARGS => sub {
 
   my %args = @_;
 
-  say Dumper(\%args);
+  #say Dumper(\%args);
 
-  # We're passing in lgrp => { lgrp => <ID>, lgrpinfo_cpus => ... }, so we need to
-  # deal with it as such (two levels of indirection)
-  #if (exists($args{'lgrp'})) {
-  #  my $id = $args{'lgrp'};
-  #  delete $args{'lgrp'};
-  #  return { id => $id, %args };
-  #}
+  # We're passing in data to build ALL cores, which needs pre-processing to
+  # whittle it down to just the data for the cores in this leaf
+  #
+  if (exists($args{'core_data'})) {
+    my $cpu_info = $args{'core_data'};
+    delete $args{'core_data'};
+    my $cores_href =
+      $self->_build_core_objects($args{'id'},$args{'cpu_range'}, $cpu_info);
+    return { cores => $cores_href, %args };
+  }
 
   return super;
 };
@@ -73,6 +76,73 @@ override BUILDARGS => sub {
 #   my $id = $self->id;
 #   say "Building Locality Group Leaf: $id";
 # }
+#
+
+sub _build_core_objects {
+  my $self = shift;
+  my $leaf_id        = shift;
+  my $cpu_range_aref = shift;
+  my $cpu_info       = shift;
+
+  my $cpu_first      = $cpu_range_aref->[0];
+  my $cpu_last       = $cpu_range_aref->[1];
+
+  my %core_objs;
+  #
+  # TODO: Assert that $cpu_range_aref is an ARRAY reference
+  #       Assert that $cpu_range_aref has 2 numeric elements
+  #       Assert that $cpu_info is an aref of CPU data hrefs
+  #
+  # Get data specific to the CPUs that reside in this leaf
+  my @cpu_data = grep { ($_->{id} >= $cpu_first) &&
+                        ($_->{id} <= $cpu_last) } @$cpu_info;
+
+  #say "Found " . scalar(@cpu_data) . " CPUs in this leaf";
+
+  #say Data::Dumper::Dumper(\@cpu_data);
+
+  # Gather CPU data by core, sorted by core id, then by CPU id
+  my @core_data =
+    map { $_->[0] }
+    sort { $a->[1] <=> $b->[1] ||
+           $a->[2] <=> $b->[2] }
+    map { [ $_, $_->{core_id}, $_->{id} ] }
+    @cpu_data;
+
+  #say Data::Dumper::Dumper(\@core_data);
+
+  # Build:
+  # { core_id => id,
+  #   cpus    => [ { cpu_data }, ... ] }
+  my %core_ctor;
+  foreach my $datum (@core_data) {
+    if (not exists($core_ctor{$datum->{core_id}})) {
+      $core_ctor{$datum->{core_id}} = [];
+      push @{$core_ctor{$datum->{core_id}}}, $datum;
+    } else {
+      push @{$core_ctor{$datum->{core_id}}}, $datum;
+    }
+  }
+  #foreach my $key (sort keys(%core_ctor)) {
+  #  say Data::Dumper::Dumper(\$core_ctor{$key});
+  #}
+  
+  #
+  # Then create hashref of Core objects, with the key being the core_id
+  #
+  foreach my $core_id (sort keys %core_ctor) {
+    #say Data::Dumper::Dumper(\$core_ctor{$core_id});
+    my $core =
+      Solaris::CPU::Core->new( id       => $core_id,
+                               cpu_data => $core_ctor{$core_id},
+                             );
+    $core_objs{$core_id} = $core;
+  }
+
+  # Return completed set of Core objects
+  #say Data::Dumper::Dumper(\%core_objs);
+  return \%core_objs;
+}
 
 =head2 PUBLIC Methods
 
@@ -85,9 +155,18 @@ Print out information on this leaf Locality Gruop
 sub print
 {
   my $self = shift;
+  my $cores_href = $self->cores;
+
+  #say Data::Dumper::Dumper($cores_href);
 
   say "Locality Group: " . $self->id;
   say "CPU RANGE: " . $self->cpu_range->[0] . "-" . $self->cpu_range->[1];
+  my $buf = sprintf("%5s: ","CORES");
+  foreach my $core_id (sort keys %$cores_href) {
+    $buf .= sprintf("\n%6s %8d: [ %40s ]","",
+                    $core_id,$cores_href->{$core_id}->format);
+  }
+  say $buf;
 }
 
 =head1 PRIVATE Methods

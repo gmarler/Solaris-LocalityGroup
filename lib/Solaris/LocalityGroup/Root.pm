@@ -75,9 +75,10 @@ sub _build_lgrp_leaves {
                  id        => $lgrp_ctor_args->{lgrp},
                  cpu_range => [ $lgrp_ctor_args->{cpufirst},
                                 $lgrp_ctor_args->{cpulast}, ],
-    #            cores => $cpu_specs_aref,
+                 core_data => $cpu_specs_aref,
                );
-    push @leaves, $leaf; 
+    push @leaves, $leaf;
+    $leaf->print;
   }
   #my @objs       = map { __PACKAGE__->new(%$_) } @$specs_aref;
 

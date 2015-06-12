@@ -37,6 +37,7 @@ has 'id'      => ( isa => 'Num', is => 'ro', required => 1 );
 # CPU Description
 has 'brand'   => ( isa => 'Str', is => 'ro', required => 1 );
 # CPU State
+# TODO: Create an enumeration of possible states
 has 'state'   => ( isa => 'Str', is => 'ro', required => 1 );
 # CORE ID
 has 'core_id' => ( isa => 'Num', is => 'ro', required => 1 );
@@ -53,6 +54,9 @@ has 'pg_id'   => ( isa => 'Num', is => 'ro', required => 1 );
 #       - NEED TO MOCK OUTPUT OF kstat ... for all CPU types
 #
 
+# TODO: Probably need to completely eliminate this, in preference to the
+#       constructor being called via
+#       LG::Root => LG::Leaf => Solaris::CPU::Core
 sub new_from_kstat {
   my $self = shift;
 

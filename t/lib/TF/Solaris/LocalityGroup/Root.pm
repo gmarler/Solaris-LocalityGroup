@@ -147,8 +147,6 @@ sub _parse_kstat_cpu_info {
                     };
                   } keys %cpu_ctor_args;
 
-  say Data::Dumper::Dumper(\@ctor_args);
-
   return \@ctor_args;
 }
 
