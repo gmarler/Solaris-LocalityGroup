@@ -115,9 +115,9 @@ sub _parse_lgrpinfo {
       }smx;
 
   while ($c =~ m/$re/gsmx) {
-    say "LGroup: " . $+{lgroup};
-    say "First CPU: " . $+{cpufirst};
-    say "Last  CPU: " . $+{cpulast};
+    #say "LGroup: " . $+{lgroup};
+    #say "First CPU: " . $+{cpufirst};
+    #say "Last  CPU: " . $+{cpulast};
     my $href = { lgrp     => $+{lgroup},
                  cpufirst => $+{cpufirst},
                  cpulast  => $+{cpulast},
@@ -164,7 +164,7 @@ sub _parse_kstat_cpu_info {
                     };
                   } keys %cpu_ctor_args;
 
-  say Dumper(\@ctor_args);
+  #say Dumper(\@ctor_args);
 
   return \@ctor_args;
 }

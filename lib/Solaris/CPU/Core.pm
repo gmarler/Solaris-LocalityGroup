@@ -21,6 +21,18 @@ use Readonly                            qw();
 
 Readonly::Scalar my $KSTAT  => '/bin/kstat';
 
+# Definition, for each CPU 'brand', for how many instructions can simultaneously
+# be 'retired' from the core pipeline per clock cycle
+my $exec_per_core = {
+  # NOTE: OPL values may NOT be correct
+  'SPARC64-VII+'   => 2,  
+  'SPARC64-VII'    => 2,
+  'UltraSPARC-T2'  => 1,
+  'UltraSPARC-T2+' => 1,
+  'SPARC-T3'       => 1,
+  'SPARC-T4'       => 2,
+  'SPARC-T5'       => 2,
+}
 #
 # Class Attribute
 #
@@ -107,6 +119,80 @@ sub format {
   }
   return $buf;
 }
+
+=method cpus_avail_for_binding
+
+For an individual core, determines how many threads/strands/vCPUs are available
+(if any) for use in creating processor sets, pbinding (single CPU), or Multiple
+CPU Binding (MCB) purposes.
+
+This is based on the type or "brand" of the core, which determines how many
+execution units are simultaneously available to 'retire' code instructions per
+clock cycle.  For lowest latency, one should never dedicate or bind more vCPUs
+into service than this count per core.
+
+If you don't care about latency, then you can ignore this advice altogether at
+your peril.
+
+RETURNS: aref containing CPU IDs available for binding, if any.
+
+=cut
+
+sub cpus_avail_for_binding {
+  my ($self) = shift;
+
+  my $core_id   = $self->id;
+  my $cpus_aref = $self->cpus;
+
+  # TODO: Assert the 'brand' of all the CPUs in the core are identical - freak
+  #       out if not
+
+  # The 'brand' of the CPUs/vCPUs in the core allow us to look up the number of
+  # execution units in the core. Just look at the first vCPU for now.
+  my $brand = $cpus_aref->[0]->brand;
+
+  unless (exists($exec_per_core->{$brand})) {
+    die "Can't determine available execution units in vCPU type [$brand]";
+  }
+
+  my $max_avail  = $exec_per_core->{$brand};
+  my $in_use     = 0;
+  my $curr_avail = 0;
+
+  # See how many vCPUs are in use in the core
+  # TODO: if $in_use exceeds $max_avail, flag the core as "oversubscribed"
+  #       (factor this out, as it'll likely be used elsewhere too)
+  foreach my $cpu_obj (@$cpus_aref) {
+    if ($cpu_obj->in_use) {
+      $in_use++;
+    }
+  }
+
+  $avail_aref = [];
+  if ($in_use > $max_avail) {
+    say "CORE $core_id is OVERSUBSCRIBED";
+    # nothing to do - will already return empty list
+  } elsif ($in_use == 0) {
+    # No need to check whether CPUs are in use, as none of them are in this case
+    for (my $i = 0; $i < scalar(@$cpus_aref); $i++) {
+      my $cpu_obj = $cpus_aref->[$i];
+      push @$avail_aref, $cpu_obj->id;
+      $curr_avail++;
+      last if ($curr_avail > $max_avail);
+    }
+  } elsif ($in_use > 0) {
+    # Need to check for CPUs that are in use, and skip over them
+    for (my $i = 0; $i < scalar(@$cpus_aref); $i++) {
+      my $cpu_obj = $cpus_aref->[$i];
+      push @$avail_aref, $cpu_obj->id;
+      $curr_avail++;
+      last if ($curr_avail > $max_avail);
+    }
+  }
+
+  return $avail_aref;
+}
+
 
 1;
 
