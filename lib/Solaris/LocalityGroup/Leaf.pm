@@ -170,6 +170,30 @@ sub print
   say $buf;
 }
 
+=method print_cpu_avail_terse
+
+This method is used to print a leaf's ID and the complete list of CPUs available
+for binding on a single line - this is the most terse format, and the one most
+  likely to be used by consumers looking to bind their threads all in a single
+  Locality Group Leaf (which is the only case that makes sense).
+
+=cut
+
+sub print_cpu_avail_terse {
+  my $self = shift;
+  my $cores_href = $self->cores;
+  my @avail_cpus;
+
+  my $buf = "LGRP " . $self->id . ": ";
+
+  foreach my $core_id (sort keys %$cores_href) {
+    push @avail_cpus, @{$cores_href->{$core_id}->cpus_avail_for_binding};
+  }
+
+  $buf .= join(" ", @avail_cpus);
+  say $buf;
+}
+
 =head1 PRIVATE Methods
 
 =cut

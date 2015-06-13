@@ -79,6 +79,7 @@ sub _build_lgrp_leaves {
                );
     push @leaves, $leaf;
     $leaf->print;
+    $leaf->print_cpu_avail_terse;
   }
   #my @objs       = map { __PACKAGE__->new(%$_) } @$specs_aref;
 
