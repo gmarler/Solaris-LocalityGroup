@@ -165,6 +165,7 @@ sub print
   foreach my $core_id (sort keys %$cores_href) {
     $buf .= sprintf("\n%6s %8d: [ %40s ]","",
                     $core_id,$cores_href->{$core_id}->format);
+    $cores_href->{$core_id}->print_cpus_avail_for_binding;
   }
   say $buf;
 }

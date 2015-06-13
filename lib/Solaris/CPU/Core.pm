@@ -32,7 +32,8 @@ my $exec_per_core = {
   'SPARC-T3'       => 1,
   'SPARC-T4'       => 2,
   'SPARC-T5'       => 2,
-}
+};
+
 #
 # Class Attribute
 #
@@ -157,7 +158,7 @@ sub cpus_avail_for_binding {
 
   my $max_avail  = $exec_per_core->{$brand};
   my $in_use     = 0;
-  my $curr_avail = 0;
+  my $curr_avail = $max_avail;
 
   # See how many vCPUs are in use in the core
   # TODO: if $in_use exceeds $max_avail, flag the core as "oversubscribed"
@@ -168,8 +169,9 @@ sub cpus_avail_for_binding {
     }
   }
 
-  $avail_aref = [];
+  my $avail_aref = [];
   if ($in_use > $max_avail) {
+    # TODO: Make this a warning
     say "CORE $core_id is OVERSUBSCRIBED";
     # nothing to do - will already return empty list
   } elsif ($in_use == 0) {
@@ -177,22 +179,34 @@ sub cpus_avail_for_binding {
     for (my $i = 0; $i < scalar(@$cpus_aref); $i++) {
       my $cpu_obj = $cpus_aref->[$i];
       push @$avail_aref, $cpu_obj->id;
-      $curr_avail++;
-      last if ($curr_avail > $max_avail);
+      last if (--$curr_avail == 0);
     }
   } elsif ($in_use > 0) {
     # Need to check for CPUs that are in use, and skip over them
     for (my $i = 0; $i < scalar(@$cpus_aref); $i++) {
       my $cpu_obj = $cpus_aref->[$i];
-      push @$avail_aref, $cpu_obj->id;
-      $curr_avail++;
-      last if ($curr_avail > $max_avail);
+      if ($cpu_obj->cpu_avail) {
+        push @$avail_aref, $cpu_obj->id;
+      }
+      last if (--$curr_avail == 0);
     }
   }
 
   return $avail_aref;
 }
 
+=method print_cpus_avail_for_binding
+
+=cut
+
+sub print_cpus_avail_for_binding {
+  my $self = shift;
+
+  my $cpus_aref = $self->cpus_avail_for_binding;
+
+  say "CPUs Available in CORE " . $self->id .
+      " [ " . join(" ", @$cpus_aref) . " ]";
+}
 
 1;
 
