@@ -182,7 +182,21 @@ sub test_constructor_mocked {
              'Each Mocked LG Root has Leaves that are of the correct object type');
 }
 
-# TODO: test_print_cpu_avail_terse_mock, at Root level
+sub test_print_cpu_avail_terse_mocked {
+  my $test = shift;
+
+  # Get the T4-4 item off the mock_output list for testing at the moment
+  # NOTE: This is currently setting a global 'our' variable pair
+  $lgrpinfo = $mock_output->{'T4-4'}->{lgrpinfo};
+  $kstat    = $mock_output->{'T4-4'}->{kstat};
+
+  my $obj = Solaris::LocalityGroup::Root->new( );
+
+  isa_ok($obj, 'Solaris::LocalityGroup::Root');
+
+  stdout_like( sub { $obj->print_cpu_avail_terse }, qr/LGRP/,
+              'printing terse CPU list available for binding' );
+}
 
 # Stolen from Solaris::LocalityGroup::Root
 sub _parse_lgrpinfo {

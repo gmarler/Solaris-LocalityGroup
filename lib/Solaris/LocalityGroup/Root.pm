@@ -52,6 +52,25 @@ sub print {
   }
 }
 
+
+=method print_cpu_avail_terse
+
+Print all CPUS available for binding purposes, for each Leaf Locality Group in
+this Root Locality Group
+
+=cut
+
+sub print_cpu_avail_terse {
+  my $self = shift;
+
+  my $leaf_aref  = $self->lgrps;
+
+  foreach my $leaf (@{$leaf_aref}) {
+    $leaf->print_cpu_avail_terse;
+  }
+}
+
+
 =head1 PRIVATE Methods
 
 =cut
@@ -78,8 +97,6 @@ sub _build_lgrp_leaves {
                  core_data => $cpu_specs_aref,
                );
     push @leaves, $leaf;
-    $leaf->print;
-    $leaf->print_cpu_avail_terse;
   }
   #my @objs       = map { __PACKAGE__->new(%$_) } @$specs_aref;
 
