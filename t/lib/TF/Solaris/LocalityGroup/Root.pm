@@ -32,6 +32,9 @@ my $mocked_output = [
   "T4-4" => { lgrpinfo => "lgrpinfo-T4-4.out",
                  kstat => "kstat-T4-4.out",
             },
+  "T5-4" => { lgrpinfo => "lgrpinfo-T5-4.out",
+                 kstat => "kstat-T5-4.out",
+            },
 ];
 
 sub test_startup {
