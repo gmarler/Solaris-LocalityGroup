@@ -6,6 +6,8 @@ package TF::Solaris::LocalityGroup::Root;
 use File::Temp               qw();
 use Readonly                 qw();
 use Data::Dumper             qw();
+use Carp                     qw(confess);
+use Path::Class::File        qw();
 
 use Test::Class::Moose;
 with 'Test::Class::Moose::Role::AutoUse';
@@ -14,6 +16,23 @@ use Test::Output;
 Readonly::Scalar my $KSTAT    => '/bin/kstat';
 Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 
+# MOCK qx{}, backticks calls, so we can pass in known kstat / lgrpinfo from a
+# variety of different system types for testing
+BEGIN {
+  *CORE::GLOBAL::readpipe = \&_mock_readpipe
+};
+
+# The global contents of the current lgrpinfo / kstat output file, which will be
+# used by _mock_readpipe()
+#
+our $lgrpinfo;
+our $kstat;
+# NOTE: Using an aref to guarantee order (like it matters)
+my $mocked_output = [
+  "T4-4" => { lgrpinfo => "lgrpinfo-T4-4.out",
+                 kstat => "kstat-T4-4.out",
+            },
+];
 
 sub test_startup {
   my ($test) = shift;
@@ -45,6 +64,29 @@ sub test_startup {
 
   #$test->{sockpath} = "/tmp/test_glogserver_sockpath.sock-$$";
   #diag "Test socket path will be $test->{sockpath}";
+
+  my $lgrp_file =
+    Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
+                     ->file("data","lgrpinfo-T4-4.out")
+                     ->absolute->stringify;
+
+  my $kstat_file =
+    Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
+                     ->file("data","kstat-T4-4.out")
+                     ->absolute->stringify;
+
+  #  Test datafiles should exist
+  for my $file ( ( $lgrp_file, $kstat_file ) ) {
+    #ok( -f $file, "$file should exist");
+  }
+
+  my $lgrp_fh  = IO::File->new($lgrp_file,"<");
+  my $kstat_fh = IO::File->new($kstat_file,"<");
+
+  $lgrpinfo = do { local $/; <$lgrp_fh>; };
+  $kstat    = do { local $/; <$kstat_fh>; };
+
+
   my $stdout = qx{$LGRPINFO -cCG};
 
   my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
@@ -148,6 +190,19 @@ sub _parse_kstat_cpu_info {
                   } keys %cpu_ctor_args;
 
   return \@ctor_args;
+}
+
+
+sub _mock_readpipe {
+  my $cmd = shift;
+
+  if ($cmd =~ m/^\$LGRPINFO/) {
+    return $lgrpinfo;
+  } elsif ($cmd =~ m/^\$KSTAT/) {
+    return $kstat;
+  } else {
+    confess "NOT IMPLEMENTED";
+  }
 }
 
 1;
