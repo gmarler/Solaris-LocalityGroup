@@ -27,15 +27,20 @@ BEGIN {
 #
 our $lgrpinfo;
 our $kstat;
-# NOTE: Using an aref to guarantee order (like it matters)
-my $mocked_output = [
+
+my $mock_files = {
   "T4-4" => { lgrpinfo => "lgrpinfo-T4-4.out",
                  kstat => "kstat-T4-4.out",
             },
   "T5-4" => { lgrpinfo => "lgrpinfo-T5-4.out",
                  kstat => "kstat-T5-4.out",
             },
-];
+};
+
+my $mock_output = {
+  "T4-4" => { },
+  "T5-4" => { },
+};
 
 sub test_startup {
   my ($test) = shift;
@@ -68,38 +73,42 @@ sub test_startup {
   #$test->{sockpath} = "/tmp/test_glogserver_sockpath.sock-$$";
   #diag "Test socket path will be $test->{sockpath}";
 
-  my $lgrp_file =
-    Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
-                     ->file("data","lgrpinfo-T4-4.out")
-                     ->absolute->stringify;
+  foreach my $mach_type (keys %$mock_files) {
+    my $lgrp_file =
+      Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
+                       ->file("data",$mock_files->{$mach_type}->{lgrpinfo})
+                       ->absolute->stringify;
 
-  my $kstat_file =
-    Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
-                     ->file("data","kstat-T4-4.out")
-                     ->absolute->stringify;
+    my $kstat_file =
+      Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
+                       ->file("data",$mock_files->{$mach_type}->{kstat})
+                       ->absolute->stringify;
 
-  #  Test datafiles should exist
-  for my $file ( ( $lgrp_file, $kstat_file ) ) {
-    #ok( -f $file, "$file should exist");
+    my $lgrp_fh  = IO::File->new($lgrp_file,"<");
+    my $kstat_fh = IO::File->new($kstat_file,"<");
+
+    my $lgrpinfo_c = do { local $/; <$lgrp_fh>; };
+    my $kstat_c    = do { local $/; <$kstat_fh>; };
+
+    $mock_output->{$mach_type}->{lgrpinfo} = $lgrpinfo_c;
+    $mock_output->{$mach_type}->{kstat}    = $kstat_c;
   }
 
-  my $lgrp_fh  = IO::File->new($lgrp_file,"<");
-  my $kstat_fh = IO::File->new($kstat_file,"<");
-
-  $lgrpinfo = do { local $/; <$lgrp_fh>; };
-  $kstat    = do { local $/; <$kstat_fh>; };
+  # TODO: Get rid of this, once we do it properly below...
+  $lgrpinfo = $mock_output->{"T4-4"}->{lgrpinfo};
+  $kstat    = $mock_output->{"T4-4"}->{kstat};
 
 
-  my $stdout = qx{$LGRPINFO -cCG};
+  # my $stdout = qx{$LGRPINFO -cCG};
+  # 
+  # my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
 
-  my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
+  # $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
 
-  $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
+  # my $cpu_specs_aref  = __PACKAGE__->_parse_kstat_cpu_info($stdout);
 
-  my $cpu_specs_aref  = __PACKAGE__->_parse_kstat_cpu_info($stdout);
-
-  $test->{ctor_args}  = $lgrp_specs_aref;
-  $test->{kstat_args} = $cpu_specs_aref;
+  # $test->{ctor_args}  = $lgrp_specs_aref;
+  # $test->{kstat_args} = $cpu_specs_aref;
 }
 
 sub test_setup {
@@ -117,7 +126,8 @@ sub test_setup {
   # }
 }
 
-sub test_attrs {
+# Test kstat / lgrpinfo without mocking them, live for this machine type
+sub test_attrs_live {
   my $test = shift;
 
   my $obj = Solaris::LocalityGroup::Root->new( );
@@ -138,7 +148,41 @@ sub test_attrs {
               'printing LG leaves ok');
 }
 
+# Use all saved mocked output of lgrpinfo and kstat to determine if constructor
+# works as expected
+sub test_constructor_mocked {
+  my $test = shift;
 
+  my @mocked_objs;
+
+  foreach my $machtype (keys %$mock_output) {
+    $lgrpinfo = $mock_output->{$machtype}->{lgrpinfo};
+    $kstat    = $mock_output->{$machtype}->{kstat};
+    my $obj   = Solaris::LocalityGroup::Root->new( );
+    push @mocked_objs, $obj;
+    # TODO: machine specific tests are needed here
+  }
+
+  # Are Root objects correct?
+  my $ctests = all( isa("Solaris::LocalityGroup::Root"), );
+  cmp_deeply(\@mocked_objs, array_each($ctests),
+             'Mocked LG leaves are of the proper object type');
+
+  # Are Root objects composed of Leaves?
+  my (@mocked_leaf_list);
+  foreach my $root (@mocked_objs) {
+    my $leaves = $root->lgrps;
+    push @mocked_leaf_list, $leaves;
+  }
+  cmp_deeply(\@mocked_leaf_list, array_each(isa("ARRAY")),
+             'Mocked LG Roots are have an array of leaves');
+  # ... and are the leaves of the right object type?
+  cmp_deeply(\@mocked_leaf_list,
+             array_each(array_each(isa("Solaris::LocalityGroup::Leaf"))),
+             'Each Mocked LG Root has Leaves that are of the correct object type');
+}
+
+# TODO: test_print_cpu_avail_terse_mock, at Root level
 
 # Stolen from Solaris::LocalityGroup::Root
 sub _parse_lgrpinfo {
