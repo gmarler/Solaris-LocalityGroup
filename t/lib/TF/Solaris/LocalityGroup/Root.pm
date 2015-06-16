@@ -48,6 +48,7 @@ my $mock_files = {
                        },
 };
 
+# Prep this for population via the test_startup() function
 my $mock_output = {
   "OPL-SPARC64-VII" => { },
   "T4-4"            => { },
