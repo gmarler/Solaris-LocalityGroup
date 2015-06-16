@@ -8,6 +8,7 @@ use Readonly                 qw();
 use Data::Dumper             qw();
 use Carp                     qw(confess);
 use Path::Class::File        qw();
+use Test::MockModule         qw();
 
 use Test::Class::Moose;
 with 'Test::Class::Moose::Role::AutoUse';
@@ -18,7 +19,11 @@ Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 
 # MOCK qx{}, backticks calls, so we can pass in known kstat / lgrpinfo from a
 # variety of different system types for testing
+our $mock_readpipe = sub { return &CORE::readpipe(@_); };
+
 BEGIN {
+  # Attempt to use https://gist.github.com/CUXIDUMDUM/7142813
+  #*CORE::GLOBAL::readpipe = sub { $mock_readpipe->(@_); };
   *CORE::GLOBAL::readpipe = \&_mock_readpipe
 };
 
@@ -29,17 +34,42 @@ our $lgrpinfo;
 our $kstat;
 
 my $mock_files = {
-  "T4-4" => { lgrpinfo => "lgrpinfo-T4-4.out",
-                 kstat => "kstat-T4-4.out",
-            },
-  "T5-4" => { lgrpinfo => "lgrpinfo-T5-4.out",
-                 kstat => "kstat-T5-4.out",
-            },
+  "OPL-SPARC64-VII" => { lgrpinfo => "lgrpinfo-OPL-SPARC64-VII.out",
+                         kstat => "kstat-OPL-SPARC64-VII.out",
+                       },
+  "T4-4"            => { lgrpinfo => "lgrpinfo-T4-4.out",
+                            kstat => "kstat-T4-4.out",
+                       },
+  "T5-4"            => { lgrpinfo => "lgrpinfo-T5-4.out",
+                            kstat => "kstat-T5-4.out",
+                       },
+  "T5-8"            => { lgrpinfo => "lgrpinfo-T5-8.out",
+                            kstat => "kstat-T5-8.out",
+                       },
 };
 
 my $mock_output = {
-  "T4-4" => { },
-  "T5-4" => { },
+  "OPL-SPARC64-VII" => { },
+  "T4-4"            => { },
+  "T5-4"            => { },
+  "T5-8"            => { },
+};
+
+# On a Platform basis, the counts of various CPU related components, to be
+# tested against
+my $platform_counts = {
+  "T4-4"            => { cpu_count  =>  256,
+                         core_count =>   32,
+                       },
+  "T5-2"            => { cpu_count  =>    0,
+                         core_count =>   32,
+                       },
+  "T5-4"            => { cpu_count  =>  512,
+                         core_count =>   64,
+                       },
+  "T5-8"            => { cpu_count  => 1024,
+                         core_count =>  128,
+                       },
 };
 
 sub test_startup {
@@ -158,10 +188,28 @@ sub test_constructor_mocked {
   foreach my $machtype (keys %$mock_output) {
     $lgrpinfo = $mock_output->{$machtype}->{lgrpinfo};
     $kstat    = $mock_output->{$machtype}->{kstat};
-    my $obj   = Solaris::LocalityGroup::Root->new( );
+    # TODO: Make the platform attribute standard, and auto-populated via
+    # "prtconf -b"
+    my $obj   = Solaris::LocalityGroup::Root->new( platform => $machtype );
     push @mocked_objs, $obj;
     # TODO: machine specific tests are needed here
   }
+
+  # Attempt to use: https://gist.github.com/CUXIDUMDUM/7142813
+  # {
+  #   my $module = Test::MockModule->new('Solaris::LocalityGroup::Root');
+  #   $module->mock(
+  #     '_build_lgrp_leaves',
+  #     sub {
+  #       local $mock_readpipe = sub { die "mocked" };
+  #       my $orig = $module->original('_build_lgrp_leaves');
+  #       return $orig->(@_);
+  #     }
+  #   );
+  #   my $obj   = Solaris::LocalityGroup::Root->new( );
+  #   push @mocked_objs, $obj;
+  #   $obj->print_cpu_avail_terse;
+  # }
 
   # Are Root objects correct?
   my $ctests = all( isa("Solaris::LocalityGroup::Root"), );
@@ -180,6 +228,26 @@ sub test_constructor_mocked {
   cmp_deeply(\@mocked_leaf_list,
              array_each(array_each(isa("Solaris::LocalityGroup::Leaf"))),
              'Each Mocked LG Root has Leaves that are of the correct object type');
+
+  # Squirrel away mocked objects
+  $test->{mocked_root_objs} = \@mocked_objs;
+}
+
+sub test_core_count {
+  my $test = shift;
+
+  my @mocked_objs = @{$test->{mocked_root_objs}};
+  my @objs_to_test;
+
+  foreach my $obj (@mocked_objs) {
+    my $platform = $obj->platform;
+    if (exists($platform_counts->{$platform})) {
+      cmp_ok($obj->core_count, '==',
+             $platform_counts->{$platform}->{core_count},
+             'Correct core count for ' . $platform);
+    }
+  }
+
 }
 
 sub test_print_cpu_avail_terse_mocked {
@@ -265,5 +333,6 @@ sub _mock_readpipe {
     confess "NOT IMPLEMENTED";
   }
 }
+
 
 1;

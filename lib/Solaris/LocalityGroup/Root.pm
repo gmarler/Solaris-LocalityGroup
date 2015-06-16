@@ -24,6 +24,7 @@ use Readonly                            qw();
 
 Readonly::Scalar my $KSTAT    => '/bin/kstat';
 Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
+Readonly::Scalar my $MDB      => '/bin/mdb';
 
 #
 # Instance Attributes
@@ -34,7 +35,52 @@ has 'lgrps'     => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
                      builder => '_build_lgrp_leaves',
                    );
 
+# Platform name: T4-4, T5-8, M9000, etc
+has 'platform'  => ( isa => 'Str|Undef',
+                     is  => 'ro',
+                   );
+
 =head2 PUBLIC Methods
+
+=method socket_count
+
+This should also be aliased to leaf_count
+
+=cut
+
+sub socket_count {
+  my $self = shift;
+
+}
+
+=method core_count
+
+The count of cores in the entire system
+
+=cut
+
+sub core_count {
+  my $self = shift;
+
+  my $core_count = 0;
+  foreach my $leaf (@{$self->lgrps}) {
+    $core_count += $leaf->core_count;
+  }
+
+  return $core_count;
+}
+
+
+=method cpu_count
+
+The count of CPUs / vCPUs in the entire system
+
+=cut
+
+sub cpu_count {
+  my $self = shift;
+
+}
 
 =method print
 
@@ -185,6 +231,19 @@ sub _parse_kstat_cpu_info {
   #say Dumper(\@ctor_args);
 
   return \@ctor_args;
+}
+
+sub _mdb_interrupt_output {
+  my $self = shift;
+
+  my $output = qx{echo "::interrupts" | $MDB -k};
+
+  return $output;
+}
+
+sub _mdb_interrupt_parse {
+  my $self = shift;
+
 }
 
 

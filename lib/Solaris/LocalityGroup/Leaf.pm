@@ -35,6 +35,8 @@ has 'id'        => ( isa      => 'Int',
                      required => 1,
                    );
 
+# TODO: have both an array of cores, and a hashref of coures with the core ID as
+# the keys
 has 'cores'     => ( isa => 'HashRef[Solaris::CPU::Core]|Undef',
                      is => 'ro',
                      # init_arg => cpu_info_data,
@@ -145,6 +147,20 @@ sub _build_core_objects {
 }
 
 =head2 PUBLIC Methods
+
+=method core_count
+
+The count of cores in this LG Leaf
+
+=cut
+
+sub core_count {
+  my $self = shift;
+
+  my $core_count = scalar(keys %{$self->cores});
+
+  return $core_count;
+}
 
 =method print
 
