@@ -80,6 +80,11 @@ The count of CPUs / vCPUs in the entire system
 sub cpu_count {
   my $self = shift;
 
+  my $cpu_count = 0;
+  foreach my $leaf (@{$self->lgrps}) {
+    $cpu_count += $leaf->cpu_count;
+  }
+  return $cpu_count;
 }
 
 =method print

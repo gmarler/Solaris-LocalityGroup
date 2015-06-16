@@ -162,9 +162,28 @@ sub core_count {
   return $core_count;
 }
 
+=method cpu_count
+
+The count of CPUs / vCPUs in this core
+
+=cut
+
+sub cpu_count {
+  my $self = shift;
+
+  my $cpu_count = 0;
+  my @cores = values(%{$self->cores});
+
+  foreach my $core (@cores) {
+    $cpu_count += scalar(@{$core->cpus});
+  }
+
+  return $cpu_count;
+}
+
 =method print
 
-Print out information on this leaf Locality Gruop
+Print out information on this leaf Locality Group
 
 =cut
 

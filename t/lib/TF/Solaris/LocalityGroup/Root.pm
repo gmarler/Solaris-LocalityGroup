@@ -250,6 +250,23 @@ sub test_core_count {
 
 }
 
+sub test_cpu_count {
+  my $test = shift;
+
+  my @mocked_objs = @{$test->{mocked_root_objs}};
+  my @objs_to_test;
+
+  foreach my $obj (@mocked_objs) {
+    my $platform = $obj->platform;
+    if (exists($platform_counts->{$platform})) {
+      cmp_ok($obj->cpu_count, '==',
+             $platform_counts->{$platform}->{cpu_count},
+             'Correct CPU count for ' . $platform);
+    }
+  }
+}
+
+
 sub test_print_cpu_avail_terse_mocked {
   my $test = shift;
 
