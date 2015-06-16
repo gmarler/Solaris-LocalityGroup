@@ -1,0 +1,16 @@
+lgroup 1 (leaf):
+	CPUs: 0-127
+lgroup 2 (leaf):
+	CPUs: 128-255
+lgroup 3 (leaf):
+	CPUs: 256-383
+lgroup 4 (leaf):
+	CPUs: 384-511
+lgroup 5 (leaf):
+	CPUs: 512-639
+lgroup 6 (leaf):
+	CPUs: 640-767
+lgroup 7 (leaf):
+	CPUs: 768-895
+lgroup 8 (leaf):
+	CPUs: 896-1023
