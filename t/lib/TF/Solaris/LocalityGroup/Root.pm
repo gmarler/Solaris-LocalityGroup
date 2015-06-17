@@ -39,11 +39,13 @@ our $psets;
 my $mock_files = {
   "OPL-SPARC64-VII" => { lgrpinfo   => "lgrpinfo-OPL-SPARC64-VII.out",
                          kstat      => "kstat-OPL-SPARC64-VII.out",
-                         interrupts => "mdb-interrupts-OPL-SPARC64-VII.out",
+                         #interrupts => "mdb-interrupts-OPL-SPARC64-VII.out",
+                         interrupts => "kstat-pci_intrs-OPL-SPARC64-VII.out",
                        },
   "T4-4"            => { lgrpinfo   => "lgrpinfo-T4-4.out",
                             kstat   => "kstat-T4-4.out",
-                         interrupts => "mdb-interrupts-T4-4.out.1",
+                            #interrupts => "mdb-interrupts-T4-4.out.1",
+                         interrupts => "kstat-pci_intrs-T4-4.out",
                        },
 #  "T5-2"            => { lgrpinfo   => "lgrpinfo-T5-4.out",
 #                            kstat   => "kstat-T5-4.out",
@@ -51,11 +53,13 @@ my $mock_files = {
 #                       },
   "T5-4"            => { lgrpinfo   => "lgrpinfo-T5-4.out",
                             kstat   => "kstat-T5-4.out",
-                         interrupts => "mdb-interrupts-T5-4.out.1",
+                            #interrupts => "mdb-interrupts-T5-4.out.1",
+                         interrupts => "kstat-pci_intrs-T5-4.out",
                        },
   "T5-8"            => { lgrpinfo   => "lgrpinfo-T5-8.out",
                             kstat   => "kstat-T5-8.out",
-                         interrupts => "mdb-interrupts-T5-8.out",
+                            #interrupts => "mdb-interrupts-T5-8.out",
+                         interrupts => "kstat-pci_intrs-T5-8.out",
                        },
 };
 
@@ -213,6 +217,7 @@ sub test_constructor_mocked {
     $lgrpinfo   = $mock_output->{$machtype}->{lgrpinfo};
     $kstat      = $mock_output->{$machtype}->{kstat};
     $interrupts = $mock_output->{$machtype}->{interrupts};
+
     # TODO: Make the platform attribute standard, and auto-populated via
     # "prtconf -b"
     my $obj   = Solaris::LocalityGroup::Root->new( platform => $machtype );
@@ -369,9 +374,9 @@ sub _mock_readpipe {
 
   if ($cmd =~ m/^\$LGRPINFO/) {
     return $lgrpinfo;
-  } elsif ($cmd =~ m/^\$KSTAT/) {
+  } elsif ($cmd =~ m/^\$KSTAT\s+\-p\s+\'cpu_info/) {
     return $kstat;
-  } elsif ($cmd =~ m/^echo\s\"::interrupts/) {
+  } elsif ($cmd =~ m/^\$KSTAT\s+\-p\s+\'pci_intr/) {
     return $interrupts;
   } else {
     confess "NOT IMPLEMENTED";

@@ -157,8 +157,10 @@ sub _build_lgrp_leaves {
   my $cpu_specs_aref  = $self->_parse_kstat_cpu_info($stdout);
 
   # Obtain interrupt information
-  $stdout = $self->_mdb_interrupts_output();
-  my $interrupts_aref = $self->_parse_mdb_interrupts($stdout);
+  # TODO: stop getting this with mdb, and use kstats to obtain this instead:
+  #       kstat -p 'pci_intrs::config:/(name|pil|cpu|type)/'
+  $stdout = $self->_kstat_interrupts();
+  my $interrupts_aref = $self->_parse_kstat_interrupts($stdout);
 
   #
   # TODO: Obtain pset information
@@ -254,6 +256,58 @@ sub _parse_kstat_cpu_info {
   return \@ctor_args;
 }
 
+sub _kstat_interrupts {
+  my $self = shift;
+
+  my $stdout =
+    qx{$KSTAT -p 'pci_intrs::config:/^\(?:name|cpu|type|pil\)\$/'};
+
+  return $stdout;
+}
+
+sub _parse_kstat_interrupts {
+  my $self       = shift;
+  my $c          = shift;
+  my @ctor_args;
+
+  my $important = $self->important_interrupts;
+
+  my (@lines) = split /\n/, $c;
+
+  my (%interrupt_ctor_args);
+  # Parse each individual property line for this interrupt
+  foreach my $line (@lines) {
+    my ($cpu_id,$key);
+
+    my ($keypart, $value) = split /\s+/, $line;
+    say "KEYPART: $keypart";
+    say "VALUE:   $value";
+
+    #($cpu_id = $keypart) =~ s{^cpu_info:(\d+):.+$}{$1};
+
+    #say "CPU ID: $cpu_id";
+
+    #($key = $keypart) =~ s{^cpu_info:$cpu_id:[^:]+:(\S+)$}{$1};
+
+    #say "KEY $key";
+
+    #$cpu_ctor_args{$cpu_id}->{$key} = $value;
+  }
+
+  # @ctor_args = map { my $cpu_id = $_;
+  #                   { id => $cpu_id,
+  #                     map {
+  #                       $_ => $cpu_ctor_args{$cpu_id}->{$_};
+  #                     } keys $cpu_ctor_args{$cpu_id},
+  #                   };
+  #                 } keys %cpu_ctor_args;
+
+  #say Dumper(\@ctor_args);
+
+  # return \@ctor_args;
+}
+
+# TODO: Eliminate these
 sub _mdb_interrupts_output {
   my $self = shift;
 
@@ -265,8 +319,9 @@ sub _mdb_interrupts_output {
 sub _parse_mdb_interrupts {
   my $self = shift;
 
-  my $important = $self->important_interrupts;
 
+  # Parse the header first, as it will indicate any changes in the output format
+  # for us, since the format of this output is not set in stone
 
 }
 
