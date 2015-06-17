@@ -265,6 +265,9 @@ sub _mdb_interrupts_output {
 sub _parse_mdb_interrupts {
   my $self = shift;
 
+  my $important = $self->important_interrupts;
+
+
 }
 
 
