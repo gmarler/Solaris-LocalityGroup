@@ -30,9 +30,26 @@ Readonly::Scalar my $MDB      => '/bin/mdb';
 # Instance Attributes
 #
 
+# TODO: Rename as 'leaves' to be more intuitive
 has 'lgrps'     => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
                      is => 'ro',
                      builder => '_build_lgrp_leaves',
+                   );
+
+#
+# Drivers whose interrupts are "important" to us, in the sense that if we see on
+# of their interrupts bound to a CPU, we make sure we mark that CPU as being
+# "used" and not bindable otherwise.
+#
+# Any other drivers generally don't consume much of a CPU, so their not likely
+# to be worth excluding the CPU from our binding.
+#
+has 'important_interrupts'
+                => ( isa => 'RegexpRef',
+                     is  => 'ro',
+                     default => sub {
+                       qr/(nxge|igb|ixgbe)/;
+                     },
                    );
 
 # Platform name: T4-4, T5-8, M9000, etc
@@ -133,11 +150,20 @@ sub _build_lgrp_leaves {
   my $stdout = qx{$LGRPINFO -cCG};
   # TODO: if command failed, generate an exception
 
-  my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
+  my $lgrp_specs_aref = $self->_parse_lgrpinfo($stdout);
 
   $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
 
-  my $cpu_specs_aref  = __PACKAGE__->_parse_kstat_cpu_info($stdout);
+  my $cpu_specs_aref  = $self->_parse_kstat_cpu_info($stdout);
+
+  # Obtain interrupt information
+  $stdout = $self->_mdb_interrupts_output();
+  my $interrupts_aref = $self->_parse_mdb_interrupts($stdout);
+
+  #
+  # TODO: Obtain pset information
+  # TODO: Obtain single pbind information
+  # TODO: Obtain MCB information
 
   foreach my $lgrp_ctor_args (@$lgrp_specs_aref) {
     # TODO: Add CPU data specific to the leaf to the constructor args
@@ -162,17 +188,7 @@ sub _build_lgrp_leaves {
   return \@leaves;
 }
 
-#
-# nydevsol10 # lgrpinfo -cCG
-# lgroup 1 (leaf):
-#         CPUs: 0-63
-# lgroup 2 (leaf):
-#         CPUs: 64-127
-# lgroup 3 (leaf):
-#         CPUs: 128-191
-# lgroup 4 (leaf):
-#         CPUs: 192-255
-#
+
 sub _parse_lgrpinfo {
   my $self       = shift;
   my $c          = shift;
@@ -238,7 +254,7 @@ sub _parse_kstat_cpu_info {
   return \@ctor_args;
 }
 
-sub _mdb_interrupt_output {
+sub _mdb_interrupts_output {
   my $self = shift;
 
   my $output = qx{echo "::interrupts" | $MDB -k};
@@ -246,7 +262,7 @@ sub _mdb_interrupt_output {
   return $output;
 }
 
-sub _mdb_interrupt_parse {
+sub _parse_mdb_interrupts {
   my $self = shift;
 
 }

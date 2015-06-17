@@ -32,19 +32,30 @@ BEGIN {
 #
 our $lgrpinfo;
 our $kstat;
+our $interrupts;
+our $pbinds;
+our $psets;
 
 my $mock_files = {
-  "OPL-SPARC64-VII" => { lgrpinfo => "lgrpinfo-OPL-SPARC64-VII.out",
-                         kstat => "kstat-OPL-SPARC64-VII.out",
+  "OPL-SPARC64-VII" => { lgrpinfo   => "lgrpinfo-OPL-SPARC64-VII.out",
+                         kstat      => "kstat-OPL-SPARC64-VII.out",
+                         interrupts => "mdb-interrupts-OPL-SPARC64-VII.out",
                        },
-  "T4-4"            => { lgrpinfo => "lgrpinfo-T4-4.out",
-                            kstat => "kstat-T4-4.out",
+  "T4-4"            => { lgrpinfo   => "lgrpinfo-T4-4.out",
+                            kstat   => "kstat-T4-4.out",
+                         interrupts => "mdb-interrupts-T4-4.out",
                        },
-  "T5-4"            => { lgrpinfo => "lgrpinfo-T5-4.out",
-                            kstat => "kstat-T5-4.out",
+#  "T5-2"            => { lgrpinfo   => "lgrpinfo-T5-4.out",
+#                            kstat   => "kstat-T5-4.out",
+#                         interrupts => "mdb-interrupts-T5-4.out",
+#                       },
+  "T5-4"            => { lgrpinfo   => "lgrpinfo-T5-4.out",
+                            kstat   => "kstat-T5-4.out",
+                         interrupts => "mdb-interrupts-T5-4.out",
                        },
-  "T5-8"            => { lgrpinfo => "lgrpinfo-T5-8.out",
-                            kstat => "kstat-T5-8.out",
+  "T5-8"            => { lgrpinfo   => "lgrpinfo-T5-8.out",
+                            kstat   => "kstat-T5-8.out",
+                         interrupts => "mdb-interrupts-T5-8.out",
                        },
 };
 
@@ -52,6 +63,7 @@ my $mock_files = {
 my $mock_output = {
   "OPL-SPARC64-VII" => { },
   "T4-4"            => { },
+#  "T5-2"            => { },
   "T5-4"            => { },
   "T5-8"            => { },
 };
@@ -115,19 +127,30 @@ sub test_startup {
                        ->file("data",$mock_files->{$mach_type}->{kstat})
                        ->absolute->stringify;
 
+    my $interrupts_file =
+      Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
+                       ->file("data",$mock_files->{$mach_type}->{interrupts})
+                       ->absolute->stringify;
+
+
+
     my $lgrp_fh  = IO::File->new($lgrp_file,"<");
     my $kstat_fh = IO::File->new($kstat_file,"<");
+    my $intr_fh  = IO::File->new($interrupts_file,"<");
 
     my $lgrpinfo_c = do { local $/; <$lgrp_fh>; };
     my $kstat_c    = do { local $/; <$kstat_fh>; };
+    my $intr_c     = do { local $/; <$intr_fh>; };
 
-    $mock_output->{$mach_type}->{lgrpinfo} = $lgrpinfo_c;
-    $mock_output->{$mach_type}->{kstat}    = $kstat_c;
+    $mock_output->{$mach_type}->{lgrpinfo}   = $lgrpinfo_c;
+    $mock_output->{$mach_type}->{kstat}      = $kstat_c;
+    $mock_output->{$mach_type}->{interrupts} = $intr_c;
   }
 
   # TODO: Get rid of this, once we do it properly below...
-  $lgrpinfo = $mock_output->{"T4-4"}->{lgrpinfo};
-  $kstat    = $mock_output->{"T4-4"}->{kstat};
+  $lgrpinfo   = $mock_output->{"T4-4"}->{lgrpinfo};
+  $kstat      = $mock_output->{"T4-4"}->{kstat};
+  $interrupts = $mock_output->{"T4-4"}->{interrupts};
 
 
   # my $stdout = qx{$LGRPINFO -cCG};
@@ -187,8 +210,9 @@ sub test_constructor_mocked {
   my @mocked_objs;
 
   foreach my $machtype (keys %$mock_output) {
-    $lgrpinfo = $mock_output->{$machtype}->{lgrpinfo};
-    $kstat    = $mock_output->{$machtype}->{kstat};
+    $lgrpinfo   = $mock_output->{$machtype}->{lgrpinfo};
+    $kstat      = $mock_output->{$machtype}->{kstat};
+    $interrupts = $mock_output->{$machtype}->{interrupts};
     # TODO: Make the platform attribute standard, and auto-populated via
     # "prtconf -b"
     my $obj   = Solaris::LocalityGroup::Root->new( platform => $machtype );
@@ -347,6 +371,8 @@ sub _mock_readpipe {
     return $lgrpinfo;
   } elsif ($cmd =~ m/^\$KSTAT/) {
     return $kstat;
+  } elsif ($cmd =~ m/^echo\s\"::interrupts/) {
+    return $interrupts;
   } else {
     confess "NOT IMPLEMENTED";
   }
