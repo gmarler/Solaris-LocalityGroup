@@ -58,6 +58,28 @@ has 'in_use'  => ( isa => 'Bool',
                    },
                  );
 
+# One or more interrupt may be assigned to a CPU
+has 'interrupts_for' =>
+                 ( isa => 'ArrayRef|Undef',
+                   is  => 'ro',
+                 );
+
+=method interrupts_assigned
+
+The count of interrupts (of importance) assigned to this CPU.  Interrupts that
+are not actually being used, or have known very low utilization of the CPU are
+ignored / not counted.
+
+=cut
+
+
+sub interrupts_assigned {
+  my $self = shift;
+
+  my $iaref = $self->interrupts_for;
+
+  return scalar(@{$iaref});
+}
 
 __PACKAGE__->meta()->make_immutable();
  

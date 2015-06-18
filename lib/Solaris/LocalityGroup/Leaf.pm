@@ -65,8 +65,14 @@ override BUILDARGS => sub {
   if (exists($args{'core_data'})) {
     my $cpu_info = $args{'core_data'};
     delete $args{'core_data'};
+    my $interrupt_info;
+    if (exists($args{'interrupt_data'})) {
+      $interrupt_info = $args{'interrupt_data'};
+      delete $args{'interrupt_data'};
+    }
     my $cores_href =
-      $self->_build_core_objects($args{'id'},$args{'cpu_range'}, $cpu_info);
+      $self->_build_core_objects($args{'id'},$args{'cpu_range'}, $cpu_info,
+                                 $interrupt_info);
     return { cores => $cores_href, %args };
   }
 
@@ -86,6 +92,7 @@ sub _build_core_objects {
   my $leaf_id        = shift;
   my $cpu_range_aref = shift;
   my $cpu_info       = shift;
+  my $interrupt_info = shift;
 
   my $cpu_first      = $cpu_range_aref->[0];
   my $cpu_last       = $cpu_range_aref->[1];
@@ -100,6 +107,9 @@ sub _build_core_objects {
   my @cpu_data = grep { ($_->{id} >= $cpu_first) &&
                         ($_->{id} <= $cpu_last) } @$cpu_info;
 
+  my %interrupt_data = map { $_->{cpu} => $_->{interrupts_for};
+                      } @$interrupt_info;
+  
   # Gather CPU data by core, sorted by core id, then by CPU id
   my @core_data =
     map { $_->[0] }
@@ -107,6 +117,14 @@ sub _build_core_objects {
            $a->[2] <=> $b->[2] }
     map { [ $_, $_->{core_id}, $_->{id} ] }
     @cpu_data;
+
+  # Add information on interrupts assigned to individual CPUs, if they exist
+  foreach my $core_data (@core_data) {
+    if (exists($interrupt_data{$core_data->{id}})) {
+      $core_data->{interrupts} = $interrupt_data{$core_data->{id}};
+    }
+  }
+  #say Data::Dumper::Dumper(\@core_data);
 
   # Build:
   # { core_id => id,
@@ -120,6 +138,7 @@ sub _build_core_objects {
       push @{$core_ctor{$datum->{core_id}}}, $datum;
     }
   }
+
   #foreach my $key (sort keys(%core_ctor)) {
   #  say Data::Dumper::Dumper(\$core_ctor{$key});
   #}
