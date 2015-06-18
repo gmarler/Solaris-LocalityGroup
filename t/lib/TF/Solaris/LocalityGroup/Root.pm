@@ -192,10 +192,10 @@ sub test_attrs_live {
 
   isa_ok($obj, 'Solaris::LocalityGroup::Root', 'object is of proper class');
 
-  can_ok($obj, qw( lgrps ) );
+  can_ok($obj, qw( leaves ) );
 
   # Test that returned Locality Group Leaves are valid
-  my $leaves = $obj->lgrps;
+  my $leaves = $obj->leaves;
   isa_ok($leaves, 'ARRAY' );
 
   my @leaves = @{$leaves};
@@ -249,7 +249,7 @@ sub test_constructor_mocked {
   # Are Root objects composed of Leaves?
   my (@mocked_leaf_list);
   foreach my $root (@mocked_objs) {
-    my $leaves = $root->lgrps;
+    my $leaves = $root->leaves;
     push @mocked_leaf_list, $leaves;
   }
   cmp_deeply(\@mocked_leaf_list, array_each(isa("ARRAY")),

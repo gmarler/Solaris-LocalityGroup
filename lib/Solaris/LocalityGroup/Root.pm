@@ -30,8 +30,7 @@ Readonly::Scalar my $MDB      => '/bin/mdb';
 # Instance Attributes
 #
 
-# TODO: Rename as 'leaves' to be more intuitive
-has 'lgrps'     => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
+has 'leaves'    => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
                      is => 'ro',
                      builder => '_build_lgrp_leaves',
                    );
@@ -80,7 +79,7 @@ sub core_count {
   my $self = shift;
 
   my $core_count = 0;
-  foreach my $leaf (@{$self->lgrps}) {
+  foreach my $leaf (@{$self->leaves}) {
     $core_count += $leaf->core_count;
   }
 
@@ -98,7 +97,7 @@ sub cpu_count {
   my $self = shift;
 
   my $cpu_count = 0;
-  foreach my $leaf (@{$self->lgrps}) {
+  foreach my $leaf (@{$self->leaves}) {
     $cpu_count += $leaf->cpu_count;
   }
   return $cpu_count;
@@ -113,7 +112,7 @@ Print out information on this leaf Locality Gruop
 sub print {
   my $self = shift;
 
-  my @leaves = @{$self->lgrps};
+  my @leaves = @{$self->leaves};
 
   foreach my $leaf (@leaves) {
     $leaf->print;
@@ -131,7 +130,7 @@ this Root Locality Group
 sub print_cpu_avail_terse {
   my $self = shift;
 
-  my $leaf_aref  = $self->lgrps;
+  my $leaf_aref  = $self->leaves;
 
   foreach my $leaf (@{$leaf_aref}) {
     $leaf->print_cpu_avail_terse;
@@ -280,8 +279,8 @@ sub _parse_kstat_interrupts {
     my ($cpu_id,$key);
 
     my ($keypart, $value) = split /\s+/, $line;
-    say "KEYPART: $keypart";
-    say "VALUE:   $value";
+    #say "KEYPART: $keypart";
+    #say "VALUE:   $value";
 
     #($cpu_id = $keypart) =~ s{^cpu_info:(\d+):.+$}{$1};
 
