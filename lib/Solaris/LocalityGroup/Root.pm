@@ -170,7 +170,7 @@ sub _build_lgrp_leaves {
   my $cpu_specs_aref  = $self->_parse_kstat_cpu_info($stdout);
 
   # Obtain interrupt information
-  # TODO: stop getting this with mdb, and use kstats to obtain this instead:
+  # Using kstats to obtain this data now, instead of mdb:
   #       kstat -p 'pci_intrs::config:/(name|pil|cpu|type)/'
   $stdout = $self->_kstat_interrupts();
   my $interrupts_aref = $self->_parse_kstat_interrupts($stdout);
@@ -183,10 +183,11 @@ sub _build_lgrp_leaves {
   foreach my $lgrp_ctor_args (@$lgrp_specs_aref) {
     # TODO: Add CPU data specific to the leaf to the constructor args
     my $leaf = Solaris::LocalityGroup::Leaf->new(
-                 id        => $lgrp_ctor_args->{lgrp},
-                 cpu_range => [ $lgrp_ctor_args->{cpufirst},
-                                $lgrp_ctor_args->{cpulast}, ],
-                 core_data => $cpu_specs_aref,
+                 id             => $lgrp_ctor_args->{lgrp},
+                 cpu_range      => [ $lgrp_ctor_args->{cpufirst},
+                                     $lgrp_ctor_args->{cpulast}, ],
+                 core_data      => $cpu_specs_aref,
+                 interrupt_data => $interrupts_aref,
                );
     push @leaves, $leaf;
   }
@@ -282,7 +283,7 @@ sub _parse_kstat_interrupts {
   my $self       = shift;
   my $c          = shift;
 
-  my @nics_in_use = $self->nics_in_use;
+  my @nics_in_use = @{$self->nics_in_use};
   say "NICS in use: " . Dumper(\@nics_in_use);
 
   my @ctor_args;
@@ -335,6 +336,12 @@ sub _parse_kstat_interrupts {
       next;
     }
     # TODO: ignore / skip interrupts for NICs that are not in use
+    if (  grep(/^$value$/, @nics_in_use) ) {
+      #say "including NIC: $value";
+    } else {
+      #say "Skipping non-utilized NIC: $value";
+      next;
+    }
 
     if (not exists($interrupt_ctor_args{$key})) {
       $interrupt_ctor_args{$key} = [];
@@ -350,7 +357,7 @@ sub _parse_kstat_interrupts {
   #                   };
   #                 } keys %cpu_ctor_args;
 
-  #say Dumper(\%interrupt_ctor_args);
+  say Dumper(\%interrupt_ctor_args);
   #say Dumper(\@ctor_args);
 
   # return \@ctor_args;
