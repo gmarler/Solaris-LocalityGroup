@@ -25,6 +25,7 @@ use Readonly                            qw();
 Readonly::Scalar my $KSTAT    => '/bin/kstat';
 Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 Readonly::Scalar my $MDB      => '/bin/mdb';
+Readonly::Scalar my $DLADM    => '/sbin/dladm';
 
 #
 # Instance Attributes
@@ -49,6 +50,12 @@ has 'important_interrupts'
                      default => sub {
                        qr/(nxge|igb|ixgbe)/;
                      },
+                   );
+
+has 'nics_in_use'
+                => ( isa     => 'ArrayRef',
+                     is      => 'ro',
+                     builder => '_build_nics_in_use',
                    );
 
 # Platform name: T4-4, T5-8, M9000, etc
@@ -273,24 +280,48 @@ sub _parse_kstat_interrupts {
 
   my (@lines) = split /\n/, $c;
 
-  my (%interrupt_ctor_args);
+  my (%interrupt_ctor_args,
+      %coalesce);  # used to coalesce multi-line records
+
   # Parse each individual property line for this interrupt
+  #
+  # Each line has a unique "key", which itself is meaningless.  It just
+  # signified when we've moved from one multiline interrupt record to the next.
+  #
+  # So we keep track of the "lastkey" to know when we've moved to the next
+  # multiline interrupt record.
+  #
+  # keep these outside the loop,
+  # so their state is kept for the entire loop run
+  #
+  my ($lastkey,$currval_aref);
   foreach my $line (@lines) {
-    my ($cpu_id,$key);
+    my ($key,$statname);
 
     my ($keypart, $value) = split /\s+/, $line;
-    #say "KEYPART: $keypart";
-    #say "VALUE:   $value";
+    ($key      = $keypart) =~ s{^(pci_intrs:[^:]+:config):.+$}{$1};
+    ($statname = $keypart) =~ s{^pci_intrs:[^:]+:config:(\S+)$}{$1};
+    if ($statname eq "cpu") {
+      $coalesce{$key}->{cpu}  = $value;
+    } elsif ($statname eq "name") {
+      $coalesce{$key}->{name} = $value;
+    } else {
+      # ignore remaining data, for the time being
+      next;
+    }
+  }
 
-    #($cpu_id = $keypart) =~ s{^cpu_info:(\d+):.+$}{$1};
-
-    #say "CPU ID: $cpu_id";
-
-    #($key = $keypart) =~ s{^cpu_info:$cpu_id:[^:]+:(\S+)$}{$1};
-
-    #say "KEY $key";
-
-    #$cpu_ctor_args{$cpu_id}->{$key} = $value;
+  # The keys, or entries, are meaningless to us; this is where we reorganize
+  # the collected data into something meaningful
+  foreach my $entry (keys %coalesce) {
+    my $key   = $coalesce{$entry}->{cpu};
+    my $value = $coalesce{$entry}->{name};
+    # Ignore / skip "non-important" interrupts
+    # TODO: ignore / skip interrupts for NICs that are not in use
+    if (not exists($interrupt_ctor_args{$key})) {
+      $interrupt_ctor_args{$key} = [];
+    }
+    push @{$interrupt_ctor_args{$key}}, $value;
   }
 
   # @ctor_args = map { my $cpu_id = $_;
@@ -301,30 +332,36 @@ sub _parse_kstat_interrupts {
   #                   };
   #                 } keys %cpu_ctor_args;
 
+  #say Dumper(\%interrupt_ctor_args);
   #say Dumper(\@ctor_args);
 
   # return \@ctor_args;
 }
 
-# TODO: Eliminate these
-sub _mdb_interrupts_output {
+=method _build_nics_in_use
+
+Private method that gives a list of the NIC names that are actively in use.
+
+Used when mapping which interrupts are assigned to which CPUs, so we only pay
+attention to NICs that are actually in use.
+
+=cut
+
+sub _build_nics_in_use {
   my $self = shift;
+  my @nics;
 
-  my $output = qx{echo "::interrupts" | $MDB -k};
+  my $output = qx{$DLADM show-ether -p -o link,state};
+  # TODO: check state of command
+  while ($output =~ m{([^:]+):(.+)}gsmx) {
+    my ($link,$state) = ($1, $2);
+    if ($state eq "up") {
+      push @nics, $link;
+    }
+  }
 
-  return $output;
+  return \@nics;
 }
-
-sub _parse_mdb_interrupts {
-  my $self = shift;
-
-
-  # Parse the header first, as it will indicate any changes in the output format
-  # for us, since the format of this output is not set in stone
-
-}
-
-
 
 
 1;

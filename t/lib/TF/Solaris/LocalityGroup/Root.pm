@@ -33,33 +33,38 @@ BEGIN {
 our $lgrpinfo;
 our $kstat;
 our $interrupts;
+our $dladm_show_ether;
 our $pbinds;
 our $psets;
 
 my $mock_files = {
-  "OPL-SPARC64-VII" => { lgrpinfo   => "lgrpinfo-OPL-SPARC64-VII.out",
-                         kstat      => "kstat-OPL-SPARC64-VII.out",
-                         #interrupts => "mdb-interrupts-OPL-SPARC64-VII.out",
-                         interrupts => "kstat-pci_intrs-OPL-SPARC64-VII.out",
+  "OPL-SPARC64-VII" => { lgrpinfo         => "lgrpinfo-OPL-SPARC64-VII.out",
+                         kstat            => "kstat-OPL-SPARC64-VII.out",
+                         #interrupts      => "mdb-interrupts-OPL-SPARC64-VII.out",
+                         interrupts       => "kstat-pci_intrs-OPL-SPARC64-VII.out",
+                         dladm_show_ether => "dladm-show-ether-OPL-SPARC64-VII.out",
                        },
-  "T4-4"            => { lgrpinfo   => "lgrpinfo-T4-4.out",
-                            kstat   => "kstat-T4-4.out",
-                            #interrupts => "mdb-interrupts-T4-4.out.1",
-                         interrupts => "kstat-pci_intrs-T4-4.out",
+  "T4-4"            => { lgrpinfo         => "lgrpinfo-T4-4.out",
+                         kstat            => "kstat-T4-4.out",
+                         #interrupts      => "mdb-interrupts-T4-4.out.1",
+                         interrupts       => "kstat-pci_intrs-T4-4.out",
+                         dladm_show_ether => "dladm-show-ether-T4-4.out",
                        },
 #  "T5-2"            => { lgrpinfo   => "lgrpinfo-T5-4.out",
 #                            kstat   => "kstat-T5-4.out",
 #                         interrupts => "mdb-interrupts-T5-4.out",
 #                       },
-  "T5-4"            => { lgrpinfo   => "lgrpinfo-T5-4.out",
-                            kstat   => "kstat-T5-4.out",
-                            #interrupts => "mdb-interrupts-T5-4.out.1",
-                         interrupts => "kstat-pci_intrs-T5-4.out",
+  "T5-4"            => { lgrpinfo         => "lgrpinfo-T5-4.out",
+                         kstat            => "kstat-T5-4.out",
+                         #interrupts      => "mdb-interrupts-T5-4.out.1",
+                         interrupts       => "kstat-pci_intrs-T5-4.out",
+                         dladm_show_ether => "dladm-show-ether-T5-4.out",
                        },
-  "T5-8"            => { lgrpinfo   => "lgrpinfo-T5-8.out",
-                            kstat   => "kstat-T5-8.out",
-                            #interrupts => "mdb-interrupts-T5-8.out",
-                         interrupts => "kstat-pci_intrs-T5-8.out",
+  "T5-8"            => { lgrpinfo         => "lgrpinfo-T5-8.out",
+                         kstat            => "kstat-T5-8.out",
+                         #interrupts      => "mdb-interrupts-T5-8.out",
+                         interrupts       => "kstat-pci_intrs-T5-8.out",
+                         dladm_show_ether => "dladm-show-ether-T5-8.out",
                        },
 };
 
@@ -136,25 +141,33 @@ sub test_startup {
                        ->file("data",$mock_files->{$mach_type}->{interrupts})
                        ->absolute->stringify;
 
+    my $dladm_show_ether_file =
+      Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
+                       ->file("data",$mock_files->{$mach_type}->{dladm_show_ether})
+                       ->absolute->stringify;
 
 
-    my $lgrp_fh  = IO::File->new($lgrp_file,"<");
-    my $kstat_fh = IO::File->new($kstat_file,"<");
-    my $intr_fh  = IO::File->new($interrupts_file,"<");
+    my $lgrp_fh             = IO::File->new($lgrp_file,"<");
+    my $kstat_fh            = IO::File->new($kstat_file,"<");
+    my $intr_fh             = IO::File->new($interrupts_file,"<");
+    my $dladm_show_ether_fh = IO::File->new($dladm_show_ether_file,"<");
 
-    my $lgrpinfo_c = do { local $/; <$lgrp_fh>; };
-    my $kstat_c    = do { local $/; <$kstat_fh>; };
-    my $intr_c     = do { local $/; <$intr_fh>; };
+    my $lgrpinfo_c         = do { local $/; <$lgrp_fh>; };
+    my $kstat_c            = do { local $/; <$kstat_fh>; };
+    my $intr_c             = do { local $/; <$intr_fh>; };
+    my $dladm_show_ether_c = do { local $/; <$dladm_show_ether_fh>; };
 
-    $mock_output->{$mach_type}->{lgrpinfo}   = $lgrpinfo_c;
-    $mock_output->{$mach_type}->{kstat}      = $kstat_c;
-    $mock_output->{$mach_type}->{interrupts} = $intr_c;
+    $mock_output->{$mach_type}->{lgrpinfo}         = $lgrpinfo_c;
+    $mock_output->{$mach_type}->{kstat}            = $kstat_c;
+    $mock_output->{$mach_type}->{interrupts}       = $intr_c;
+    $mock_output->{$mach_type}->{dladm_show_ether} = $dladm_show_ether_c;
   }
 
   # TODO: Get rid of this, once we do it properly below...
-  $lgrpinfo   = $mock_output->{"T4-4"}->{lgrpinfo};
-  $kstat      = $mock_output->{"T4-4"}->{kstat};
-  $interrupts = $mock_output->{"T4-4"}->{interrupts};
+  $lgrpinfo         = $mock_output->{"T4-4"}->{lgrpinfo};
+  $kstat            = $mock_output->{"T4-4"}->{kstat};
+  $interrupts       = $mock_output->{"T4-4"}->{interrupts};
+  $dladm_show_ether = $mock_output->{"T4-4"}->{dladm_show_ether};
 
 
   # my $stdout = qx{$LGRPINFO -cCG};
@@ -378,6 +391,8 @@ sub _mock_readpipe {
     return $kstat;
   } elsif ($cmd =~ m/^\$KSTAT\s+\-p\s+\'pci_intr/) {
     return $interrupts;
+  } elsif ($cmd =~ m/^\$DLADM\s+show-ether/) {
+    return $dladm_show_ether;
   } else {
     confess "NOT IMPLEMENTED";
   }
