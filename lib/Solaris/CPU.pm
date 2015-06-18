@@ -81,6 +81,20 @@ sub interrupts_assigned {
   return scalar(@{$iaref});
 }
 
+=method oversubscribed
+
+This method will return true if there are too many threads are bound to or too
+manyinterrupts assigned to this CPU.
+
+Where "too many" is the subjective > 1.
+
+=cut
+
+sub oversubscribed {
+  my $self = shift;
+
+}
+
 __PACKAGE__->meta()->make_immutable();
  
 1;
