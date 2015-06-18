@@ -122,9 +122,6 @@ sub test_startup {
   # ... passed as a reference to init()
   Log::Log4perl::init( \$conf );
 
-  #$test->{sockpath} = "/tmp/test_glogserver_sockpath.sock-$$";
-  #diag "Test socket path will be $test->{sockpath}";
-
   foreach my $mach_type (keys %$mock_files) {
     my $lgrp_file =
       Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent

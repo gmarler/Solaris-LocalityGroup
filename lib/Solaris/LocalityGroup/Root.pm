@@ -44,11 +44,17 @@ has 'leaves'    => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
 # Any other drivers generally don't consume much of a CPU, so their not likely
 # to be worth excluding the CPU from our binding.
 #
-has 'important_interrupts'
+# NOTE: This does not currently work, as of Moose 2.1404, as it sometimes
+#       returns an undefined value while trying to perform regular expression
+#       compilation - use of /o doesn't seem to help either:
+#
+# Warning message emitted: Use of uninitialized value in regexp compilation
+#
+has 'important_interrupts_re'
                 => ( isa => 'RegexpRef',
                      is  => 'ro',
                      default => sub {
-                       qr/(nxge|igb|ixgbe)/;
+                       qr/^(nxge|igb|ixgbe)/;
                      },
                    );
 
@@ -56,6 +62,7 @@ has 'nics_in_use'
                 => ( isa     => 'ArrayRef',
                      is      => 'ro',
                      builder => '_build_nics_in_use',
+                     lazy    => 1,
                    );
 
 # Platform name: T4-4, T5-8, M9000, etc
@@ -274,9 +281,13 @@ sub _kstat_interrupts {
 sub _parse_kstat_interrupts {
   my $self       = shift;
   my $c          = shift;
+
+  my @nics_in_use = $self->nics_in_use;
+  say "NICS in use: " . Dumper(\@nics_in_use);
+
   my @ctor_args;
 
-  my $important = $self->important_interrupts;
+  my $important_interrupts_re = qr/^(nxge|igb|ixgbe)/;
 
   my (@lines) = split /\n/, $c;
 
@@ -317,7 +328,14 @@ sub _parse_kstat_interrupts {
     my $key   = $coalesce{$entry}->{cpu};
     my $value = $coalesce{$entry}->{name};
     # Ignore / skip "non-important" interrupts
+    #say "ENTRY:     $value";
+    #say "IMPORTANT: $important_interrupts_re";
+    if ($value !~ $important_interrupts_re) {
+      #say "Skipping non-important: $value";
+      next;
+    }
     # TODO: ignore / skip interrupts for NICs that are not in use
+
     if (not exists($interrupt_ctor_args{$key})) {
       $interrupt_ctor_args{$key} = [];
     }
@@ -353,7 +371,7 @@ sub _build_nics_in_use {
 
   my $output = qx{$DLADM show-ether -p -o link,state};
   # TODO: check state of command
-  while ($output =~ m{([^:]+):(.+)}gsmx) {
+  while ($output =~ m{^([^:]+):([^\n]+)\n}gsmx) {
     my ($link,$state) = ($1, $2);
     if ($state eq "up") {
       push @nics, $link;
