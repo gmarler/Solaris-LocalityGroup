@@ -47,7 +47,8 @@ has 'cpu_range' => ( isa      => 'ArrayRef[Int]',
                      required => 1,
                    );
 
-has 'cpus'      => ( isa => 'HashRef[Solaris::CPU::vCPU]|Undef',
+# TODO: Populate these from below, from the Core or CPU level
+has 'cpus'      => ( isa => 'HashRef[Solaris::CPU]|Undef',
                      is  => 'ro',
                    );
 
@@ -99,10 +100,6 @@ sub _build_core_objects {
   my @cpu_data = grep { ($_->{id} >= $cpu_first) &&
                         ($_->{id} <= $cpu_last) } @$cpu_info;
 
-  #say "Found " . scalar(@cpu_data) . " CPUs in this leaf";
-
-  #say Data::Dumper::Dumper(\@cpu_data);
-
   # Gather CPU data by core, sorted by core id, then by CPU id
   my @core_data =
     map { $_->[0] }
@@ -110,8 +107,6 @@ sub _build_core_objects {
            $a->[2] <=> $b->[2] }
     map { [ $_, $_->{core_id}, $_->{id} ] }
     @cpu_data;
-
-  #say Data::Dumper::Dumper(\@core_data);
 
   # Build:
   # { core_id => id,

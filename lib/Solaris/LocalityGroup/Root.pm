@@ -160,13 +160,13 @@ sub _build_lgrp_leaves {
   my $self = shift;
   my @leaves;
 
+  # Obtain LG leaf topology
   my $stdout = qx{$LGRPINFO -cCG};
   # TODO: if command failed, generate an exception
-
   my $lgrp_specs_aref = $self->_parse_lgrpinfo($stdout);
 
+  # Obtain CPU specific info
   $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
-
   my $cpu_specs_aref  = $self->_parse_kstat_cpu_info($stdout);
 
   # Obtain interrupt information
@@ -284,7 +284,7 @@ sub _parse_kstat_interrupts {
   my $c          = shift;
 
   my @nics_in_use = @{$self->nics_in_use};
-  say "NICS in use: " . Dumper(\@nics_in_use);
+  # say "NICS in use: " . Dumper(\@nics_in_use);
 
   my @ctor_args;
 
@@ -349,18 +349,16 @@ sub _parse_kstat_interrupts {
     push @{$interrupt_ctor_args{$key}}, $value;
   }
 
-  # @ctor_args = map { my $cpu_id = $_;
-  #                   { id => $cpu_id,
-  #                     map {
-  #                       $_ => $cpu_ctor_args{$cpu_id}->{$_};
-  #                     } keys $cpu_ctor_args{$cpu_id},
-  #                   };
-  #                 } keys %cpu_ctor_args;
+  # Sort numerically by CPU
+  @ctor_args = map {
+                    { cpu            => $_,
+                      interrupts_for => $interrupt_ctor_args{$_},
+                    };
+                  } sort { $a <=> $b } keys %interrupt_ctor_args;
 
-  say Dumper(\%interrupt_ctor_args);
-  #say Dumper(\@ctor_args);
+  # say Dumper(\@ctor_args);
 
-  # return \@ctor_args;
+  return \@ctor_args;
 }
 
 =method _build_nics_in_use
