@@ -180,6 +180,17 @@ sub test_startup {
   # ... passed as a reference to init()
   Log::Log4perl::init( \$conf );
 
+  foreach my $platform (keys %$mock_files) {
+    foreach my $machine (@{$mock_files->{$platform}}) {
+      my $lgrpinfo_c         = _load_mock_data($machine->{lgrpinfo});
+      my $kstat_c            = _load_mock_data($machine->{kstat});
+      my $interrupts_c       = _load_mock_data($machine->{interrupts});
+      my $dladm_show_ether_c = _load_mock_data($machine->{dladm_show_ether});
+      my $prtconf_b_c        = _load_mock_data($machine->{prtconf_b});
+    }
+  }
+
+
   foreach my $mach_type (keys %$mock_files) {
     my $lgrp_file =
       Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
@@ -452,9 +463,26 @@ sub _mock_readpipe {
     return $interrupts;
   } elsif ($cmd =~ m/^\$DLADM\s+show-ether/) {
     return $dladm_show_ether;
+  } elsif ($cmd =~ m/^\$PRTRCONF\s+\-b/) {
+    return $prtconf_b;
   } else {
     confess "NOT IMPLEMENTED";
   }
+}
+
+sub _load_mock_data {
+  my $datafile = shift;
+  my $filepath =
+  Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
+                   ->file("data",$datafile)
+                   ->absolute->stringify;
+
+  my $fh       = IO::File->new($filepath,"<");
+
+  my $content = do { local $/; <$fh>; };
+
+  $fh->close;
+  return $content;
 }
 
 

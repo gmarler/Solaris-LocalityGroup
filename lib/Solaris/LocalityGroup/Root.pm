@@ -26,6 +26,7 @@ Readonly::Scalar my $KSTAT    => '/bin/kstat';
 Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 Readonly::Scalar my $MDB      => '/bin/mdb';
 Readonly::Scalar my $DLADM    => '/sbin/dladm';
+Readonly::Scalar my $PRTCONF  => '/sbin/prtconf';
 
 #
 # Instance Attributes
@@ -66,8 +67,9 @@ has 'nics_in_use'
                    );
 
 # Platform name: T4-4, T5-8, M9000, etc
-has 'platform'  => ( isa => 'Str|Undef',
-                     is  => 'ro',
+has 'platform'  => ( isa     => 'Str|Undef',
+                     is      => 'ro',
+                     builder => '_build_platform',
                    );
 
 =head2 PUBLIC Methods
@@ -386,6 +388,29 @@ sub _build_nics_in_use {
   return \@nics;
 }
 
+=method _build_platform
+
+Based on the output of prtconf -b, deduce the platform name
+
+=cut
+
+sub _build_platform {
+  my $self = shift;
+
+  my $output = qx{$PRTCONF -b};
+  # TODO: check state of command
+  my $platform;
+  
+  if ($output =~ m/banner-name:\s+SPARC\s+Enterprise\s+(M\d000)/smx) {
+    $platform = $1;
+  } elsif ($output =~ m/banner-name:\s+SPARC\s+(T[457]-[1248])/smx) {
+    $platform = $1;
+  } else {
+    say "UNABLE TO DETERMINE PLATFORM TYPE from: $output";
+    return; # undef
+  }
+  return $platform;
+}
 
 1;
 
