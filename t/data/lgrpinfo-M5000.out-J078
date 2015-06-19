@@ -1,0 +1,4 @@
+lgroup 1 (leaf):
+	CPUs: 0-15
+lgroup 2 (leaf):
+	CPUs: 32-47

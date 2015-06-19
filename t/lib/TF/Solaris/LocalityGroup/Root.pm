@@ -38,34 +38,91 @@ our $pbinds;
 our $psets;
 
 my $mock_files = {
-  "OPL-SPARC64-VII" => { lgrpinfo         => "lgrpinfo-OPL-SPARC64-VII.out",
-                         kstat            => "kstat-OPL-SPARC64-VII.out",
-                         #interrupts      => "mdb-interrupts-OPL-SPARC64-VII.out",
-                         interrupts       => "kstat-pci_intrs-OPL-SPARC64-VII.out",
-                         dladm_show_ether => "dladm-show-ether-OPL-SPARC64-VII.out",
-                       },
-  "T4-4"            => { lgrpinfo         => "lgrpinfo-T4-4.out",
-                         kstat            => "kstat-T4-4.out",
-                         #interrupts      => "mdb-interrupts-T4-4.out.1",
-                         interrupts       => "kstat-pci_intrs-T4-4.out",
-                         dladm_show_ether => "dladm-show-ether-T4-4.out",
-                       },
-#  "T5-2"            => { lgrpinfo   => "lgrpinfo-T5-4.out",
-#                            kstat   => "kstat-T5-4.out",
-#                         interrupts => "mdb-interrupts-T5-4.out",
-#                       },
-  "T5-4"            => { lgrpinfo         => "lgrpinfo-T5-4.out",
-                         kstat            => "kstat-T5-4.out",
-                         #interrupts      => "mdb-interrupts-T5-4.out.1",
-                         interrupts       => "kstat-pci_intrs-T5-4.out",
-                         dladm_show_ether => "dladm-show-ether-T5-4.out",
-                       },
-  "T5-8"            => { lgrpinfo         => "lgrpinfo-T5-8.out",
-                         kstat            => "kstat-T5-8.out",
-                         #interrupts      => "mdb-interrupts-T5-8.out",
-                         interrupts       => "kstat-pci_intrs-T5-8.out",
-                         dladm_show_ether => "dladm-show-ether-T5-8.out",
-                       },
+  "M9000" =>   [
+                 { # P019
+                   name             => "PORT SPARC64-VII",
+                   lgrpinfo         => "lgrpinfo-OPL-SPARC64-VII.out",
+                   kstat            => "kstat-OPL-SPARC64-VII.out",
+                   interrupts       => "kstat-pci_intrs-OPL-SPARC64-VII.out",
+                   dladm_show_ether => "dladm-show-ether-OPL-SPARC64-VII.out",
+                   prtconf_b        => "prtconf_b-M9000.out",
+                 },
+                 { # N069
+                   name             => "FX SPARC-VI and SPARC64-VII+ mix",
+                   lgrpinfo         => "lgrpinfo-M9000.out-N069",
+                   kstat            => "kstat-M9000.out-N069",
+                   interrupts       => "kstat-pci_intrs-M9000.out-N069",
+                   dladm_show_ether => "dladm-show-ether-M9000.out-N069",
+                   prtconf_b        => "prtconf_b-M9000.out-N069",
+                 },
+               ],
+  "M5000" =>   [
+                 { # J078
+                   name             => "UNKNOWN",
+                   lgrpinfo         => "lgrpinfo-M5000.out-J078",
+                   kstat            => "kstat-M5000.out-J078",
+                   interrupts       => "kstat-pci_intrs-M5000.out-J078",
+                   dladm_show_ether => "dladm-show-ether-M5000.out-J078",
+                   prtconf_b        => "prtconf_b-M9000.out-J078",
+                 },
+               ],
+  "T4-4"  =>   [
+                 { 
+                   name             => "No Env",
+                   lgrpinfo         => "lgrpinfo-T4-4.out",
+                   kstat            => "kstat-T4-4.out",
+                   interrupts       => "kstat-pci_intrs-T4-4.out",
+                   dladm_show_ether => "dladm-show-ether-T4-4.out",
+                   prtconf_b        => "prtconf_b-T4-4.out",
+                 },
+                 {
+                   name             => "USER",
+                   lgrpinfo         => "lgrpinfo-T4-4.out-P110",
+                   kstat            => "kstat-T4-4.out-P110",
+                   interrupts       => "kstat-pci_intrs-T4-4.out-P110",
+                   dladm_show_ether => "dladm-show-ether-T4-4.out-P110",
+                   prtconf_b        => "prtconf_b-T4-4.out-P110",
+                 },
+               ],
+  "T5-2"  =>   [
+                 { # NYSOLPERF1
+                   name             => "NO ENV",
+                   lgrpinfo         => "lgrpinfo-T5-2.out",
+                   kstat            => "kstat-T5-2.out",
+                   interrupts       => "kstat-pci_intrs-T5-2.out",
+                   dladm_show_ether => "dladm-show-ether-T5-2.out",
+                   prtconf_b        => "prtconf_b-T5-2.out",
+                 },
+                 { 
+                   name             => "DSRV",
+                   lgrpinfo         => "lgrpinfo-T5-2.out-NJDSRV1",
+                   kstat            => "kstat-T5-2.out-NJDSRV1",
+                   interrupts       => "kstat-pci_intrs-T5-2.out-NJDSRV1",
+                   dladm_show_ether => "dladm-show-ether-T5-2.out-NJDSRV1",
+                   prtconf_b        => "prtconf_b-T5-2.out-NJDSRV1",
+                 },
+
+               ],
+  "T5-4"  =>   [
+                 { # SUNDEV51
+                   name             => "DEV",
+                   lgrpinfo         => "lgrpinfo-T5-4.out",
+                   kstat            => "kstat-T5-4.out",
+                   interrupts       => "kstat-pci_intrs-T5-4.out",
+                   dladm_show_ether => "dladm-show-ether-T5-4.out",
+                   prtconf_b        => "prtconf_b-T5-4.out",
+                 },
+               ],
+  "T5-8"  =>   [
+                 { # P300
+                   name             => "GSRV",
+                   lgrpinfo         => "lgrpinfo-T5-8.out",
+                   kstat            => "kstat-T5-8.out",
+                   interrupts       => "kstat-pci_intrs-T5-8.out",
+                   dladm_show_ether => "dladm-show-ether-T5-8.out",
+                   prtconf_b        => "prtconf_b-T5-8.out",
+                 },
+               ],
 };
 
 # Prep this for population via the test_startup() function
@@ -93,6 +150,7 @@ my $platform_counts = {
                          core_count =>  128,
                        },
 };
+
 
 sub test_startup {
   my ($test) = shift;
@@ -312,8 +370,10 @@ sub test_print_cpu_avail_terse_mocked {
 
   # Get the T4-4 item off the mock_output list for testing at the moment
   # NOTE: This is currently setting a global 'our' variable pair
-  $lgrpinfo = $mock_output->{'T4-4'}->{lgrpinfo};
-  $kstat    = $mock_output->{'T4-4'}->{kstat};
+  $lgrpinfo         = $mock_output->{'T5-4'}->{lgrpinfo};
+  $kstat            = $mock_output->{'T5-4'}->{kstat};
+  $interrupts       = $mock_output->{'T5-4'}->{interrupts};
+  $dladm_show_ether = $mock_output->{'T5-4'}->{dladm_show_ether};
 
   my $obj = Solaris::LocalityGroup::Root->new( );
 
@@ -321,6 +381,8 @@ sub test_print_cpu_avail_terse_mocked {
 
   stdout_like( sub { $obj->print_cpu_avail_terse }, qr/LGRP/,
               'printing terse CPU list available for binding' );
+
+  say $obj->print_cpu_avail_terse;
 }
 
 # Stolen from Solaris::LocalityGroup::Root

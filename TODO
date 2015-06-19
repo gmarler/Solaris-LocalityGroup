@@ -1,0 +1,3 @@
+
+- Abort if host is a non-global zone, since this only makes sense in the context
+  of a global zone

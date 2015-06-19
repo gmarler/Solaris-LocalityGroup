@@ -11,6 +11,7 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::ClassAttribute;
 with 'MooseX::Log::Log4perl';
+use Term::ANSIColor;
 
 use Solaris::CPU;
 
@@ -87,7 +88,7 @@ sub _build_cpu_objects {
     # Whittle this down to what we actually use now
     #say Data::Dumper::Dumper(\$ctor_data_href);
     my %ctor_args = map { $_ => $ctor_data_href->{$_}; }
-                    qw( id brand state core_id chip_id pg_id );
+                    qw( id brand state core_id chip_id pg_id interrupts );
     #say Data::Dumper::Dumper(\%ctor_args);
     push @cpu_objs, Solaris::CPU->new( \%ctor_args );
   }
@@ -170,9 +171,10 @@ sub cpus_avail_for_binding {
   }
 
   my $avail_aref = [];
+  say "Core $core_id has $in_use CPUs in use";
   if ($in_use > $max_avail) {
     # TODO: Make this a warning
-    say "CORE $core_id is OVERSUBSCRIBED";
+    say "CORE $core_id is " . colored(['red bold'], 'OVERSUBSCRIBED');
     # nothing to do - will already return empty list
   } elsif ($in_use == 0) {
     # No need to check whether CPUs are in use, as none of them are in this case

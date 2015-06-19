@@ -45,24 +45,58 @@ has 'core_id' => ( isa => 'Num', is => 'ro', required => 1 );
 has 'chip_id' => ( isa => 'Num', is => 'ro', required => 1 );
 # PG ID (not sure this is that useful at the moment - mpstat uses it)
 has 'pg_id'   => ( isa => 'Num', is => 'ro', required => 1 );
-# Whether this CPU is in use or not
-# TODO: make this an ArrayRef of different "use types" (interrupt, squeue
-#       thread, pbound, MCB bound), so we also get a count of the use for
-#       determining oversubscription
-has 'in_use'  => ( isa => 'Bool',
-                   traits => ['Bool'],
-                   is => 'rw',
-                   default => 0,
-                   handles => {
-                     cpu_avail => 'not',
-                   },
-                 );
-
 # One or more interrupt may be assigned to a CPU
-has 'interrupts_for' =>
+has 'interrupts' =>
                  ( isa => 'ArrayRef|Undef',
                    is  => 'ro',
                  );
+
+=method in_use
+
+Returns 1 if this CPU in use in any of the following ways:
+
+=over 4
+
+=item *
+
+Is handling one or more interrupts
+
+=item *
+
+A thread is bound to this CPU (singly or MCB)
+
+=item *
+
+This CPU is a member of a processor set
+
+=back
+
+=cut
+
+sub in_use {
+  my $self = shift;
+
+  if (defined($self->interrupts)) {
+    return 1;
+  }
+  # TODO: Check whether pbound to
+  # TODO: Check whether part of a pset
+
+  # If we got this far, this CPU is not in use
+  return 0;
+}
+
+=method cpu_avail
+
+The logical inverse of B<in_use> above.
+
+=cut
+
+sub cpu_avail {
+  my $self = shift;
+
+  return not $self->in_use;
+}
 
 =method interrupts_assigned
 
