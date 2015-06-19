@@ -30,17 +30,16 @@ BEGIN {
 # The global contents of the current lgrpinfo / kstat output file, which will be
 # used by _mock_readpipe()
 #
-our $lgrpinfo;
-our $kstat;
-our $interrupts;
-our $dladm_show_ether;
+our ($lgrpinfo,$kstat,$interrupts,$dladm_show_ether,$prtconf_b);
 our $pbinds;
 our $psets;
 
+# NOTE / WARNING: The "name" below must be unique, as this gets turned into a
+#                 hash later
 my $mock_files = {
   "M9000" =>   [
                  { # P019
-                   name             => "PORT SPARC64-VII",
+                   name             => "PORT pure SPARC64-VII",
                    lgrpinfo         => "lgrpinfo-OPL-SPARC64-VII.out",
                    kstat            => "kstat-OPL-SPARC64-VII.out",
                    interrupts       => "kstat-pci_intrs-OPL-SPARC64-VII.out",
@@ -63,12 +62,12 @@ my $mock_files = {
                    kstat            => "kstat-M5000.out-J078",
                    interrupts       => "kstat-pci_intrs-M5000.out-J078",
                    dladm_show_ether => "dladm-show-ether-M5000.out-J078",
-                   prtconf_b        => "prtconf_b-M9000.out-J078",
+                   prtconf_b        => "prtconf_b-M5000.out-J078",
                  },
                ],
   "T4-4"  =>   [
                  { 
-                   name             => "No Env",
+                   name             => "Perf Test Host 1",
                    lgrpinfo         => "lgrpinfo-T4-4.out",
                    kstat            => "kstat-T4-4.out",
                    interrupts       => "kstat-pci_intrs-T4-4.out",
@@ -86,7 +85,7 @@ my $mock_files = {
                ],
   "T5-2"  =>   [
                  { # NYSOLPERF1
-                   name             => "NO ENV",
+                   name             => "Perf Test Host 2",
                    lgrpinfo         => "lgrpinfo-T5-2.out",
                    kstat            => "kstat-T5-2.out",
                    interrupts       => "kstat-pci_intrs-T5-2.out",
@@ -127,20 +126,22 @@ my $mock_files = {
 
 # Prep this for population via the test_startup() function
 my $mock_output = {
-  "OPL-SPARC64-VII" => { },
-  "T4-4"            => { },
+# "M9000"           => { },
+# "T4-4"            => { },
 #  "T5-2"            => { },
-  "T5-4"            => { },
-  "T5-8"            => { },
+# "T5-4"            => { },
+# "T5-8"            => { },
 };
 
 # On a Platform basis, the counts of various CPU related components, to be
 # tested against
 my $platform_counts = {
+  # OPL Platforms have variable CPU / Core counts, so it's harder to do this
+  # test
   "T4-4"            => { cpu_count  =>  256,
                          core_count =>   32,
                        },
-  "T5-2"            => { cpu_count  =>    0,
+  "T5-2"            => { cpu_count  =>  256,
                          core_count =>   32,
                        },
   "T5-4"            => { cpu_count  =>  512,
@@ -182,67 +183,29 @@ sub test_startup {
 
   foreach my $platform (keys %$mock_files) {
     foreach my $machine (@{$mock_files->{$platform}}) {
+      #say Data::Dumper::Dumper($machine);
       my $lgrpinfo_c         = _load_mock_data($machine->{lgrpinfo});
       my $kstat_c            = _load_mock_data($machine->{kstat});
       my $interrupts_c       = _load_mock_data($machine->{interrupts});
       my $dladm_show_ether_c = _load_mock_data($machine->{dladm_show_ether});
       my $prtconf_b_c        = _load_mock_data($machine->{prtconf_b});
+
+      my $name = $machine->{name};  # The name of the test type
+
+      $mock_output->{$name}->{lgrpinfo}         = $lgrpinfo_c;
+      $mock_output->{$name}->{kstat}            = $kstat_c;
+      $mock_output->{$name}->{interrupts}       = $interrupts_c;
+      $mock_output->{$name}->{dladm_show_ether} = $dladm_show_ether_c;
+      $mock_output->{$name}->{prtconf_b}        = $prtconf_b_c;
     }
   }
 
-
-  foreach my $mach_type (keys %$mock_files) {
-    my $lgrp_file =
-      Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
-                       ->file("data",$mock_files->{$mach_type}->{lgrpinfo})
-                       ->absolute->stringify;
-
-    my $kstat_file =
-      Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
-                       ->file("data",$mock_files->{$mach_type}->{kstat})
-                       ->absolute->stringify;
-
-    my $interrupts_file =
-      Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
-                       ->file("data",$mock_files->{$mach_type}->{interrupts})
-                       ->absolute->stringify;
-
-    my $dladm_show_ether_file =
-      Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
-                       ->file("data",$mock_files->{$mach_type}->{dladm_show_ether})
-                       ->absolute->stringify;
-
-
-    my $lgrp_fh             = IO::File->new($lgrp_file,"<");
-    my $kstat_fh            = IO::File->new($kstat_file,"<");
-    my $intr_fh             = IO::File->new($interrupts_file,"<");
-    my $dladm_show_ether_fh = IO::File->new($dladm_show_ether_file,"<");
-
-    my $lgrpinfo_c         = do { local $/; <$lgrp_fh>; };
-    my $kstat_c            = do { local $/; <$kstat_fh>; };
-    my $intr_c             = do { local $/; <$intr_fh>; };
-    my $dladm_show_ether_c = do { local $/; <$dladm_show_ether_fh>; };
-
-    $mock_output->{$mach_type}->{lgrpinfo}         = $lgrpinfo_c;
-    $mock_output->{$mach_type}->{kstat}            = $kstat_c;
-    $mock_output->{$mach_type}->{interrupts}       = $intr_c;
-    $mock_output->{$mach_type}->{dladm_show_ether} = $dladm_show_ether_c;
-  }
-
   # TODO: Get rid of this, once we do it properly below...
-  $lgrpinfo         = $mock_output->{"T4-4"}->{lgrpinfo};
-  $kstat            = $mock_output->{"T4-4"}->{kstat};
-  $interrupts       = $mock_output->{"T4-4"}->{interrupts};
-  $dladm_show_ether = $mock_output->{"T4-4"}->{dladm_show_ether};
-
-
-  # my $stdout = qx{$LGRPINFO -cCG};
-  # 
-  # my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
-
-  # $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
-
-  # my $cpu_specs_aref  = __PACKAGE__->_parse_kstat_cpu_info($stdout);
+  $lgrpinfo         = $mock_output->{"USER"}->{lgrpinfo};
+  $kstat            = $mock_output->{"USER"}->{kstat};
+  $interrupts       = $mock_output->{"USER"}->{interrupts};
+  $dladm_show_ether = $mock_output->{"USER"}->{dladm_show_ether};
+  $prtconf_b        = $mock_output->{"USER"}->{prtconf_b};
 
   # $test->{ctor_args}  = $lgrp_specs_aref;
   # $test->{kstat_args} = $cpu_specs_aref;
@@ -293,13 +256,13 @@ sub test_constructor_mocked {
   my @mocked_objs;
 
   foreach my $machtype (keys %$mock_output) {
+    # say "MACHTYPE: $machtype";
     $lgrpinfo   = $mock_output->{$machtype}->{lgrpinfo};
     $kstat      = $mock_output->{$machtype}->{kstat};
     $interrupts = $mock_output->{$machtype}->{interrupts};
+    $prtconf_b  = $mock_output->{$machtype}->{prtconf_b};
 
-    # TODO: Make the platform attribute standard, and auto-populated via
-    # "prtconf -b"
-    my $obj   = Solaris::LocalityGroup::Root->new( platform => $machtype );
+    my $obj   = Solaris::LocalityGroup::Root->new( );
     push @mocked_objs, $obj;
     # TODO: machine specific tests are needed here
   }
@@ -363,7 +326,6 @@ sub test_cpu_count {
   my $test = shift;
 
   my @mocked_objs = @{$test->{mocked_root_objs}};
-  my @objs_to_test;
 
   foreach my $obj (@mocked_objs) {
     my $platform = $obj->platform;
@@ -379,21 +341,23 @@ sub test_cpu_count {
 sub test_print_cpu_avail_terse_mocked {
   my $test = shift;
 
-  # Get the T4-4 item off the mock_output list for testing at the moment
-  # NOTE: This is currently setting a global 'our' variable pair
-  $lgrpinfo         = $mock_output->{'T5-4'}->{lgrpinfo};
-  $kstat            = $mock_output->{'T5-4'}->{kstat};
-  $interrupts       = $mock_output->{'T5-4'}->{interrupts};
-  $dladm_show_ether = $mock_output->{'T5-4'}->{dladm_show_ether};
+#  # Get the T4-4 item off the mock_output list for testing at the moment
+#  # NOTE: This is currently setting a global 'our' variable pair
+#  $lgrpinfo         = $mock_output->{'T5-4'}->{lgrpinfo};
+#  $kstat            = $mock_output->{'T5-4'}->{kstat};
+#  $interrupts       = $mock_output->{'T5-4'}->{interrupts};
+#  $dladm_show_ether = $mock_output->{'T5-4'}->{dladm_show_ether};
+#
+#  my $obj = Solaris::LocalityGroup::Root->new( );
 
-  my $obj = Solaris::LocalityGroup::Root->new( );
+  my @mocked_objs = @{$test->{mocked_root_objs}};
 
-  isa_ok($obj, 'Solaris::LocalityGroup::Root');
-
-  stdout_like( sub { $obj->print_cpu_avail_terse }, qr/LGRP/,
-              'printing terse CPU list available for binding' );
-
-  say $obj->print_cpu_avail_terse;
+  foreach my $obj (@mocked_objs) {
+    #isa_ok($obj, 'Solaris::LocalityGroup::Root');
+    stdout_like( sub { $obj->print_cpu_avail_terse }, qr/LGRP/,
+                $obj->platform . ': terse CPU list available for binding' );
+    say $obj->print_cpu_avail_terse;
+  }
 }
 
 # Stolen from Solaris::LocalityGroup::Root
@@ -463,7 +427,7 @@ sub _mock_readpipe {
     return $interrupts;
   } elsif ($cmd =~ m/^\$DLADM\s+show-ether/) {
     return $dladm_show_ether;
-  } elsif ($cmd =~ m/^\$PRTRCONF\s+\-b/) {
+  } elsif ($cmd =~ m/^\$PRTCONF\s+\-b/) {
     return $prtconf_b;
   } else {
     confess "NOT IMPLEMENTED";
@@ -477,7 +441,8 @@ sub _load_mock_data {
                    ->file("data",$datafile)
                    ->absolute->stringify;
 
-  my $fh       = IO::File->new($filepath,"<");
+  my $fh       = IO::File->new($filepath,"<") or
+  die "Unable to open $filepath for reading";
 
   my $content = do { local $/; <$fh>; };
 

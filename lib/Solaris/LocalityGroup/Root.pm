@@ -165,6 +165,7 @@ sub _build_lgrp_leaves {
   # Obtain LG leaf topology
   my $stdout = qx{$LGRPINFO -cCG};
   # TODO: if command failed, generate an exception
+  # say "LGRPINFO:\n$stdout";
   my $lgrp_specs_aref = $self->_parse_lgrpinfo($stdout);
 
   # Obtain CPU specific info
@@ -399,6 +400,10 @@ sub _build_platform {
 
   my $output = qx{$PRTCONF -b};
   # TODO: check state of command
+  if ( not length($output) ) {
+    say "No output from prtconf -b";
+    return; # undef
+  }
   my $platform;
   
   if ($output =~ m/banner-name:\s+SPARC\s+Enterprise\s+(M\d000)/smx) {
