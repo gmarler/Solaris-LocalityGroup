@@ -235,7 +235,7 @@ sub print_cpu_avail_terse {
 
   my $buf = "LGRP " . $self->id . ": ";
 
-  foreach my $core_id (sort keys %$cores_href) {
+  foreach my $core_id (sort { $a <=> $b } keys %$cores_href) {
     push @avail_cpus, @{$cores_href->{$core_id}->cpus_avail_for_binding};
   }
 

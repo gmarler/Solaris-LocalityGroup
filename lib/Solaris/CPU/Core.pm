@@ -93,6 +93,8 @@ sub _build_cpu_objects {
     push @cpu_objs, Solaris::CPU->new( \%ctor_args );
   }
 
+  # say Data::Dumper::Dumper(\@cpu_objs);
+
   # Return completed set of CPU objects
   return \@cpu_objs;
   # return undef;
