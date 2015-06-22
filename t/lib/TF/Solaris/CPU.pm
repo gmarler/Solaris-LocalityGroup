@@ -11,17 +11,17 @@ use Solaris::LocalityGroup::Root;
 
 Readonly::Scalar my $KSTAT  => '/bin/kstat';
 
-my $mock_cpu_kstats = [
-  "kstat-OPL-SPARC64-VII.out",
-  "kstat-M9000.out-N069",
-  "kstat-M5000.out-J078",
-  "kstat-T4-4.out",
-  "kstat-T4-4.out-P110",
-  "kstat-T5-2.out",
-  "kstat-T5-2.out-NJDSRV1",
-  "kstat-T5-4.out",
-  "kstat-T5-8.out",
-];
+my $mock_cpu_kstats = {
+  "M9000 variant 1" => ["kstat-OPL-SPARC64-VII.out", ],
+  "M9000 variant 2" => ["kstat-M9000.out-N069", ],
+  "M5000 variant 1" => ["kstat-M5000.out-J078", ],
+  "T4-4  variant 1" => ["kstat-T4-4.out", ],
+  "T4-4  variant 2" => ["kstat-T4-4.out-P110", ],
+  "T5-2  variant 1" => ["kstat-T5-2.out", ],
+  "T5-2  variant 2" => ["kstat-T5-2.out-NJDSRV1", ],
+  "T5-4  variant 1" => ["kstat-T5-4.out", ],
+  "T5-8  variant 1" => ["kstat-T5-8.out", ],
+};
 
 sub test_startup {
   my ($test) = shift;
@@ -54,8 +54,9 @@ sub test_startup {
   #$test->{sockpath} = "/tmp/test_glogserver_sockpath.sock-$$";
   #diag "Test socket path will be $test->{sockpath}";
 
-  my (@mocked_kstats);
-  foreach my $kstat_file (@{$mock_cpu_kstats}) {
+  my (%mocked_kstats);
+  foreach my $description (keys %$mock_cpu_kstats) {
+    my $kstat_file = $mock_cpu_kstats->{$description}->[0];
     my $datafile = shift;
     my $filepath =
     Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
@@ -68,9 +69,9 @@ sub test_startup {
     my $content = do { local $/; <$fh>; };
   
     $fh->close;
-    push @mocked_kstats, $content;
+    $mocked_kstats{$description} = $content;
   }
-  $test->{mocked_kstats} = \@mocked_kstats;
+  $test->{mocked_kstats} = \%mocked_kstats;
 }
 
 sub test_setup {
@@ -121,13 +122,13 @@ sub test_parse_live_kstat_cpu_info {
             );
   cmp_deeply( $aref,
               array_each( $cpu_cmp ),
-              'Parsed data has right hash format'
+              'Parsed data has right constructor format'
             );
 }
 
 sub test_parse_mocked_kstat_cpu_info {
   my ($test) = shift;
-  my (@mocked_kstats) = @{$test->{mocked_kstats}};
+  my (%mocked_kstats) = %{$test->{mocked_kstats}};
 
   my $id_re = re('^\d+$');
   my $state_re = re('on-line|off-line|spare|no-intr');
@@ -144,21 +145,20 @@ sub test_parse_mocked_kstat_cpu_info {
     state_begin => $id_re,
   };
 
-  foreach my $kstat_output (@mocked_kstats) {
+  foreach my $description (keys %mocked_kstats) {
+    my $kstat_output = $mocked_kstats{$description};
     #
     # NOTE: Using parser from Solaris::LocalityGroup::Root
     #
     my $aref = Solaris::LocalityGroup::Root->_parse_kstat_cpu_info($kstat_output);
     cmp_deeply( $aref,
                 array_each( isa('HASH') ),
-                'Data Parsing produces array of hashrefs'
+                $description . ': Data Parsing produces array of hashrefs'
     );
     cmp_deeply( $aref,
                 array_each( $cpu_cmp ),
-                'Parsed data has right hash format'
+                $description . ': Parsed data has right constructor format'
     );
-
-
   }
 }
 
