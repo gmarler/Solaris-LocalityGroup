@@ -27,6 +27,8 @@ Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 Readonly::Scalar my $MDB      => '/bin/mdb';
 Readonly::Scalar my $DLADM    => '/sbin/dladm';
 Readonly::Scalar my $PRTCONF  => '/sbin/prtconf';
+Readonly::Scalar my $PSRSET   => '/sbin/psrset';
+Readonly::Scalar my $PBIND    => '/sbin/pbind';
 
 #
 # Instance Attributes
