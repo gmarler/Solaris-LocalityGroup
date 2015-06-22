@@ -188,8 +188,19 @@ sub _build_lgrp_leaves {
     $psrset_aref = $self->_parse_psrset($stdout);
   }
 
-  # TODO: Obtain single pbind information
-  # TODO: Obtain MCB information
+  # Obtain single pbind and MCB bound information
+  my $pbind_href;
+  $stdout = $self->_pbind_Qc();
+  if (defined($stdout) && (length($stdout) == 1) && ($stdout == 2)) {
+    # Must be an older version of Solaris
+    $stdout = $self->_pbind_Q();
+    if (defined($stdout)) {
+      $pbind_href = $self->_parse_pbind_Q($stdout);
+    }
+  } elsif (defined($stdout)) {
+    $pbind_href = $self->_parse_pbind_Qc($stdout);
+  }
+
   #
   # TODO: ONLY PASS PSET/PBIND info on IF THEY ACTUALLY EXIST!
   #
@@ -392,8 +403,6 @@ sub _parse_psrset {
   my $self       = shift;
   my $c          = shift;
  
-  say "PSRSET OUTPUT:\n$c";
-
   # NOTE: cpulist will be space separated
   my $re = qr/^user \s processor \s set \s 
                (?<psrset_id>\d+) :
@@ -407,14 +416,143 @@ sub _parse_psrset {
   }
 }
 
-sub _pbind {
+=method _pbind_Q
 
+This method will only be called if _pbind_Qc cannot be called (it's not Solaris
+11.2 yet).  This will use the old veriant of the pbind command
+
+=cut
+
+sub _pbind_Q {
+  my $self = shift;
+
+  my $stdout = qx{$PBIND -Q};
+  # TODO: check state of command
+  if ( not length($stdout) ) {
+    say "No output from pbind -Q";
+    return; # undef
+  }
+ 
+  return $stdout;
 }
 
-sub _parse_pbind {
+
+=method _parse_pbind_Q
+
+This method parses the output of _pbind_Q, if it's called.
+
+=cut
+
+sub _parse_pbind_Q {
   my $self       = shift;
   my $c          = shift;
 
+  my %bound_cpus;
+
+  say "_parse_pbind_Q() received this input:\n$c";
+
+  # The point here is to obtain
+  # 1. CPUs that have threads bound to them
+  # 2. Secondarily, the count of threads bound to each CPU, as it will be useful
+  #    in reports that show insane binding counts.
+  #
+  # Only regular pbinding (single CPU) can occur here, like so:
+  #
+  # For a single threaded process:
+  # process id 7375: 255
+  #
+  # For multi threaded process:
+  # lwp id 12628/7360: 254
+  # 
+  #
+  my $re = qr{^(?:process \s+ id \s+ (?<pid>\d+) : \s+ (?<cpu>\d+) |
+                  lwp \s+ id \s+ (?<pid>\d+) / (?<thread>\d+) : \s+ (?<cpu>\d+)
+               ) \n
+             }smx;
+
+  # First, build the list of CPUs that have threads bound to them
+  while ($c =~ m/$re/gsmx) {
+    # If thread is not defined, it's probably LWP 1 in a single-threaded process
+    $bound_cpus{$+{cpu}}++;
+  }
+
+  say "BOUND CPUS: " .
+    Dumper( [ sort { $a <=> $b } keys %bound_cpus ] );
+
+  return \%bound_cpus;
+}
+
+
+=method _pbind_Qc
+
+Normal method (starting with Solaris 11.2) to determine the single / MCB binding
+of CPUs.
+
+=cut
+
+sub _pbind_Qc {
+  my $self = shift;
+
+  my $stdout = qx{$PBIND -Qc};
+  # TODO: check state of command
+  # If this is prior to Solaris 11.2, the arguments to pbind are quite
+  # different, as is the output.  We need to handle that case separately, so
+  # another variant of this method can be called instead.
+  my $status = $? >> 8;
+
+  say "pbind -Qc returned with status code: $status";
+
+  if ($status == 2) {
+    return 2;   # Return 2 to indicate that we need to call _pbind_Q() instead,
+                # as this is an older version of Solaris than 11.2
+  }
+
+  if ( not length($stdout) ) {
+    say "No output from pbind -Qc";
+    return; # undef
+  }
+ 
+  return $stdout;
+}
+
+sub _parse_pbind_Qc {
+  my $self       = shift;
+  my $c          = shift;
+
+  say "_parse_pbind_Qc() received this input:\n$c";
+
+  my %bound_cpus;
+
+  # The point here is to obtain
+  # 1. CPUs that have threads bound to them
+  # 2. Secondarily, the count of threads bound to each CPU, as it will be useful
+  #    in reports that show insane binding counts.
+  #
+  # Regular pbinding (single CPU) lists a single CPU per thread, like so:
+  # pbind(1M): LWP 45461/1 strongly bound to processor(s) 220.
+  #
+  # MCB pbinding (thread to multiple CPUs, non-exclusive), shows many CPUs per
+  # thread, like so:
+  # pbind(1M): LWP 59745/1 strongly bound to processor(s) 250 251 252 253 254 255.
+  #
+  my $re = qr{^pbind\(1M\): \s+
+               LWP \s+ (?<pid>\d+) / (?<thread>\d+) \s+
+               (?:strongly|weakly) \s+ bound \s+ to \s+ processor\(s\) \s+
+               (?<cpulist>[^\.]+)\.\n}smx;
+
+
+  # First, build the list of CPUs that have threads bound to them
+  while ($c =~ m/$re/gsmx) {
+    my @cpus = split(/\s+/,$+{cpulist});
+    foreach my $cpu (@cpus) {
+      $bound_cpus{$cpu}++;
+    }
+  }
+
+  say "BOUND CPUS: " .
+    Dumper( [ sort { $a <=> $b } keys %bound_cpus ] );
+
+  return \%bound_cpus;
 }
 
 =method _build_nics_in_use

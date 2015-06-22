@@ -32,7 +32,7 @@ BEGIN {
 #
 our ($lgrpinfo,$kstat,$interrupts,$dladm_show_ether,$prtconf_b);
 our ($psrset);
-our $pbinds;
+our ($pbind_Q,$pbind_Qc);
 
 # NOTE / WARNING: The "name" below must be unique, as this gets turned into a
 #                 hash later
@@ -46,6 +46,8 @@ my $mock_files = {
                    dladm_show_ether => "dladm-show-ether-OPL-SPARC64-VII.out",
                    prtconf_b        => "prtconf_b-M9000.out",
                    psrset           => "psrset-OPL-SPARC64-VII.out",
+                   pbind_Q          => "pbind_Q-OPL-SPARC64-VII.out",
+                   pbind_Qc         => undef,
                  },
                  { # N069
                    name             => "FX SPARC-VI and SPARC64-VII+ mix",
@@ -55,6 +57,8 @@ my $mock_files = {
                    dladm_show_ether => "dladm-show-ether-M9000.out-N069",
                    prtconf_b        => "prtconf_b-M9000.out-N069",
                    psrset           => "psrset-M9000.out-N069",
+                   pbind_Q          => "pbind_Q-M9000.out-N069",
+                   pbind_Qc         => undef,
                  },
                ],
   "M5000" =>   [
@@ -67,6 +71,8 @@ my $mock_files = {
                    prtconf_b        => "prtconf_b-M5000.out-J078",
                    # TODO: Example of host with an "empty" psrset, test for it
                    psrset           => "psrset-M5000.out-J078",
+                   pbind_Qc         => "pbind_Qc-M5000.out-J078",
+                   pbind_Q          => undef,
                  },
                ],
   "T4-4"  =>   [
@@ -78,6 +84,8 @@ my $mock_files = {
                    dladm_show_ether => "dladm-show-ether-T4-4.out",
                    prtconf_b        => "prtconf_b-T4-4.out",
                    psrset           => "psrset-T4-4.out",
+                   pbind_Qc         => "pbind_Qc-T4-4.out",
+                   pbind_Q          => undef,
                  },
                  {
                    name             => "USER",
@@ -87,6 +95,8 @@ my $mock_files = {
                    dladm_show_ether => "dladm-show-ether-T4-4.out-P110",
                    prtconf_b        => "prtconf_b-T4-4.out-P110",
                    psrset           => "psrset-T4-4.out-P110",
+                   pbind_Q          => "pbind_Q-T4-4.out-P110",
+                   pbind_Qc         => undef,
                  },
                ],
   "T5-2"  =>   [
@@ -98,6 +108,8 @@ my $mock_files = {
                    dladm_show_ether => "dladm-show-ether-T5-2.out",
                    prtconf_b        => "prtconf_b-T5-2.out",
                    psrset           => "psrset-T5-2.out",
+                   pbind_Qc         => "pbind_Qc-T5-2.out",
+                   pbind_Q          => undef,
                  },
                  { 
                    name             => "DSRV",
@@ -107,8 +119,9 @@ my $mock_files = {
                    dladm_show_ether => "dladm-show-ether-T5-2.out-NJDSRV1",
                    prtconf_b        => "prtconf_b-T5-2.out-NJDSRV1",
                    psrset           => "psrset-T5-2.out-NJDSRV1",
+                   pbind_Qc         => "pbind_Qc-T5-2.out-NJDSRV1",
+                   pbind_Q          => undef,
                  },
-
                ],
   "T5-4"  =>   [
                  { # SUNDEV51
@@ -119,6 +132,8 @@ my $mock_files = {
                    dladm_show_ether => "dladm-show-ether-T5-4.out",
                    prtconf_b        => "prtconf_b-T5-4.out",
                    psrset           => "psrset-T5-4.out",
+                   pbind_Qc         => "pbind_Qc-T5-4.out",
+                   pbind_Q          => undef,
                  },
                ],
   "T5-8"  =>   [
@@ -130,6 +145,8 @@ my $mock_files = {
                    dladm_show_ether => "dladm-show-ether-T5-8.out",
                    prtconf_b        => "prtconf_b-T5-8.out",
                    psrset           => "psrset-T5-8.out",
+                   pbind_Qc         => "pbind_Qc-T5-8.out",
+                   pbind_Q          => undef,
                  },
                ],
 };
@@ -200,6 +217,10 @@ sub test_startup {
       my $dladm_show_ether_c = _load_mock_data($machine->{dladm_show_ether});
       my $prtconf_b_c        = _load_mock_data($machine->{prtconf_b});
       my $psrset_c           = _load_mock_data($machine->{psrset});
+      my $pbind_Qc_c         = _load_mock_data($machine->{pbind_Qc});
+      my $pbind_Q_c          = _load_mock_data($machine->{pbind_Q});
+
+      #say "pbind -Qc defined for " . $machine->{name} if defined $pbind_Qc_c;
 
       my $name = $machine->{name};  # The name of the test type
 
@@ -209,16 +230,20 @@ sub test_startup {
       $mock_output->{$name}->{dladm_show_ether} = $dladm_show_ether_c;
       $mock_output->{$name}->{prtconf_b}        = $prtconf_b_c;
       $mock_output->{$name}->{psrset}           = $psrset_c;
+      $mock_output->{$name}->{pbind_Qc}         = $pbind_Qc_c;
+      $mock_output->{$name}->{pbind_Q}          = $pbind_Q_c;
     }
   }
 
-  # TODO: Get rid of this, once we do it properly below...
+  # TODO: Get rid of this faking of the "live" run, once we do it properly below...
   $lgrpinfo         = $mock_output->{"USER"}->{lgrpinfo};
   $kstat            = $mock_output->{"USER"}->{kstat};
   $interrupts       = $mock_output->{"USER"}->{interrupts};
   $dladm_show_ether = $mock_output->{"USER"}->{dladm_show_ether};
   $prtconf_b        = $mock_output->{"USER"}->{prtconf_b};
   $psrset           = $mock_output->{"USER"}->{psrset};
+  $pbind_Qc         = $mock_output->{"USER"}->{pbind_Qc};
+  $pbind_Q          = $mock_output->{"USER"}->{pbind_Q};
 
   # $test->{ctor_args}  = $lgrp_specs_aref;
   # $test->{kstat_args} = $cpu_specs_aref;
@@ -242,6 +267,8 @@ sub test_setup {
 # Test kstat / lgrpinfo without mocking them, live for this machine type
 sub test_attrs_live {
   my $test = shift;
+
+  diag "THIS TEST IS STILL BEING MOCKED! Needs to be live...";
 
   my $obj = Solaris::LocalityGroup::Root->new( );
 
@@ -275,6 +302,8 @@ sub test_constructor_mocked {
     $interrupts = $mock_output->{$machtype}->{interrupts};
     $prtconf_b  = $mock_output->{$machtype}->{prtconf_b};
     $psrset     = $mock_output->{$machtype}->{psrset};
+    $pbind_Q    = $mock_output->{$machtype}->{pbind_Q};
+    $pbind_Qc   = $mock_output->{$machtype}->{pbind_Qc};
 
     my $obj   = Solaris::LocalityGroup::Root->new( );
     push @mocked_objs, $obj;
@@ -445,6 +474,16 @@ sub _mock_readpipe {
     return $prtconf_b;
   } elsif ($cmd =~ m/^\$PSRSET/) {
     return $psrset;
+  } elsif ($cmd =~ m/^\$PBIND\s+\-Qc$/) {
+    if (defined($pbind_Qc)) {
+      return $pbind_Qc;
+    } else {
+      say "pbind -Qc output not specified in test";
+      $? = 2 << 8;  # Set "return code / $CHILD_ERROR" == 2
+      return; # undef
+    }
+  } elsif ($cmd =~ m/^\$PBIND\s+\-Q$/) {
+    return $pbind_Q;
   } else {
     confess "NOT IMPLEMENTED";
   }
@@ -453,12 +492,14 @@ sub _mock_readpipe {
 sub _load_mock_data {
   my $datafile = shift;
   my $filepath =
-  Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
-                   ->file("data",$datafile)
-                   ->absolute->stringify;
+    Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
+                     ->file("data",$datafile)
+                     ->absolute->stringify;
+
+  if (not -f $filepath) { return;  }
 
   my $fh       = IO::File->new($filepath,"<") or
-  die "Unable to open $filepath for reading";
+    die "Unable to open $filepath for reading";
 
   my $content = do { local $/; <$fh>; };
 
