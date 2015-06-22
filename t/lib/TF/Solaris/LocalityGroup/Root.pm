@@ -45,7 +45,7 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-OPL-SPARC64-VII.out",
                    dladm_show_ether => "dladm-show-ether-OPL-SPARC64-VII.out",
                    prtconf_b        => "prtconf_b-M9000.out",
-                   psrset           => "psrset-OPS-SPARC64-VII.out",
+                   psrset           => "psrset-OPL-SPARC64-VII.out",
                  },
                  { # N069
                    name             => "FX SPARC-VI and SPARC64-VII+ mix",
@@ -54,6 +54,7 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-M9000.out-N069",
                    dladm_show_ether => "dladm-show-ether-M9000.out-N069",
                    prtconf_b        => "prtconf_b-M9000.out-N069",
+                   psrset           => "psrset-M9000.out-N069",
                  },
                ],
   "M5000" =>   [
@@ -64,6 +65,8 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-M5000.out-J078",
                    dladm_show_ether => "dladm-show-ether-M5000.out-J078",
                    prtconf_b        => "prtconf_b-M5000.out-J078",
+                   # TODO: Example of host with an "empty" psrset, test for it
+                   psrset           => "psrset-M5000.out-J078",
                  },
                ],
   "T4-4"  =>   [
@@ -74,6 +77,7 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-T4-4.out",
                    dladm_show_ether => "dladm-show-ether-T4-4.out",
                    prtconf_b        => "prtconf_b-T4-4.out",
+                   psrset           => "psrset-T4-4.out",
                  },
                  {
                    name             => "USER",
@@ -82,6 +86,7 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-T4-4.out-P110",
                    dladm_show_ether => "dladm-show-ether-T4-4.out-P110",
                    prtconf_b        => "prtconf_b-T4-4.out-P110",
+                   psrset           => "psrset-T4-4.out-P110",
                  },
                ],
   "T5-2"  =>   [
@@ -92,6 +97,7 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-T5-2.out",
                    dladm_show_ether => "dladm-show-ether-T5-2.out",
                    prtconf_b        => "prtconf_b-T5-2.out",
+                   psrset           => "psrset-T5-2.out",
                  },
                  { 
                    name             => "DSRV",
@@ -100,6 +106,7 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-T5-2.out-NJDSRV1",
                    dladm_show_ether => "dladm-show-ether-T5-2.out-NJDSRV1",
                    prtconf_b        => "prtconf_b-T5-2.out-NJDSRV1",
+                   psrset           => "psrset-T5-2.out-NJDSRV1",
                  },
 
                ],
@@ -111,6 +118,7 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-T5-4.out",
                    dladm_show_ether => "dladm-show-ether-T5-4.out",
                    prtconf_b        => "prtconf_b-T5-4.out",
+                   psrset           => "psrset-T5-4.out",
                  },
                ],
   "T5-8"  =>   [
@@ -191,7 +199,7 @@ sub test_startup {
       my $interrupts_c       = _load_mock_data($machine->{interrupts});
       my $dladm_show_ether_c = _load_mock_data($machine->{dladm_show_ether});
       my $prtconf_b_c        = _load_mock_data($machine->{prtconf_b});
-      my $psrset_c          = _load_mock_data($machine->{psrset});
+      my $psrset_c           = _load_mock_data($machine->{psrset});
 
       my $name = $machine->{name};  # The name of the test type
 
@@ -199,6 +207,7 @@ sub test_startup {
       $mock_output->{$name}->{kstat}            = $kstat_c;
       $mock_output->{$name}->{interrupts}       = $interrupts_c;
       $mock_output->{$name}->{dladm_show_ether} = $dladm_show_ether_c;
+      $mock_output->{$name}->{prtconf_b}        = $prtconf_b_c;
       $mock_output->{$name}->{psrset}           = $psrset_c;
     }
   }

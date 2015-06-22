@@ -181,12 +181,18 @@ sub _build_lgrp_leaves {
   my $interrupts_aref = $self->_parse_kstat_interrupts($stdout);
 
   #
-  # TODO: Obtain pset information
+  # Obtain pset information
   $stdout = $self->_psrset();
-  my $psrset_aref = $self->_parse_psrset($stdout);
+  my $psrset_aref;
+  if ($stdout) {
+    $psrset_aref = $self->_parse_psrset($stdout);
+  }
 
   # TODO: Obtain single pbind information
   # TODO: Obtain MCB information
+  #
+  # TODO: ONLY PASS PSET/PBIND info on IF THEY ACTUALLY EXIST!
+  #
 
   foreach my $lgrp_ctor_args (@$lgrp_specs_aref) {
     # TODO: Add CPU data specific to the leaf to the constructor args
@@ -373,14 +379,19 @@ sub _psrset {
   my $self = shift;
 
   my $stdout = qx{$PSRSET};
-
+  # TODO: check state of command
+  if ( not length($stdout) ) {
+    say "No output from psrset";
+    return; # undef
+  }
+ 
   return $stdout;
 }
 
 sub _parse_psrset {
   my $self       = shift;
   my $c          = shift;
-
+ 
   say "PSRSET OUTPUT:\n$c";
 
   # NOTE: cpulist will be space separated
