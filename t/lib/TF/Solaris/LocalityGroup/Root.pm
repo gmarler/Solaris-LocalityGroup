@@ -31,8 +31,8 @@ BEGIN {
 # used by _mock_readpipe()
 #
 our ($lgrpinfo,$kstat,$interrupts,$dladm_show_ether,$prtconf_b);
+our ($psrset);
 our $pbinds;
-our $psets;
 
 # NOTE / WARNING: The "name" below must be unique, as this gets turned into a
 #                 hash later
@@ -45,6 +45,7 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-OPL-SPARC64-VII.out",
                    dladm_show_ether => "dladm-show-ether-OPL-SPARC64-VII.out",
                    prtconf_b        => "prtconf_b-M9000.out",
+                   psrset           => "psrset-OPS-SPARC64-VII.out",
                  },
                  { # N069
                    name             => "FX SPARC-VI and SPARC64-VII+ mix",
@@ -120,6 +121,7 @@ my $mock_files = {
                    interrupts       => "kstat-pci_intrs-T5-8.out",
                    dladm_show_ether => "dladm-show-ether-T5-8.out",
                    prtconf_b        => "prtconf_b-T5-8.out",
+                   psrset           => "psrset-T5-8.out",
                  },
                ],
 };
@@ -189,6 +191,7 @@ sub test_startup {
       my $interrupts_c       = _load_mock_data($machine->{interrupts});
       my $dladm_show_ether_c = _load_mock_data($machine->{dladm_show_ether});
       my $prtconf_b_c        = _load_mock_data($machine->{prtconf_b});
+      my $psrset_c          = _load_mock_data($machine->{psrset});
 
       my $name = $machine->{name};  # The name of the test type
 
@@ -196,7 +199,7 @@ sub test_startup {
       $mock_output->{$name}->{kstat}            = $kstat_c;
       $mock_output->{$name}->{interrupts}       = $interrupts_c;
       $mock_output->{$name}->{dladm_show_ether} = $dladm_show_ether_c;
-      $mock_output->{$name}->{prtconf_b}        = $prtconf_b_c;
+      $mock_output->{$name}->{psrset}           = $psrset_c;
     }
   }
 
@@ -206,6 +209,7 @@ sub test_startup {
   $interrupts       = $mock_output->{"USER"}->{interrupts};
   $dladm_show_ether = $mock_output->{"USER"}->{dladm_show_ether};
   $prtconf_b        = $mock_output->{"USER"}->{prtconf_b};
+  $psrset           = $mock_output->{"USER"}->{psrset};
 
   # $test->{ctor_args}  = $lgrp_specs_aref;
   # $test->{kstat_args} = $cpu_specs_aref;
@@ -261,6 +265,7 @@ sub test_constructor_mocked {
     $kstat      = $mock_output->{$machtype}->{kstat};
     $interrupts = $mock_output->{$machtype}->{interrupts};
     $prtconf_b  = $mock_output->{$machtype}->{prtconf_b};
+    $psrset     = $mock_output->{$machtype}->{psrset};
 
     my $obj   = Solaris::LocalityGroup::Root->new( );
     push @mocked_objs, $obj;
@@ -429,6 +434,8 @@ sub _mock_readpipe {
     return $dladm_show_ether;
   } elsif ($cmd =~ m/^\$PRTCONF\s+\-b/) {
     return $prtconf_b;
+  } elsif ($cmd =~ m/^\$PSRSET/) {
+    return $psrset;
   } else {
     confess "NOT IMPLEMENTED";
   }

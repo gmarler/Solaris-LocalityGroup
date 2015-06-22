@@ -182,6 +182,9 @@ sub _build_lgrp_leaves {
 
   #
   # TODO: Obtain pset information
+  $stdout = $self->_psrset();
+  my $psrset_aref = $self->_parse_psrset($stdout);
+
   # TODO: Obtain single pbind information
   # TODO: Obtain MCB information
 
@@ -364,6 +367,43 @@ sub _parse_kstat_interrupts {
   # say Dumper(\@ctor_args);
 
   return \@ctor_args;
+}
+
+sub _psrset {
+  my $self = shift;
+
+  my $stdout = qx{$PSRSET};
+
+  return $stdout;
+}
+
+sub _parse_psrset {
+  my $self       = shift;
+  my $c          = shift;
+
+  say "PSRSET OUTPUT:\n$c";
+
+  # NOTE: cpulist will be space separated
+  my $re = qr/^user \s processor \s set \s 
+               (?<psrset_id>\d+) :
+               \s processors \s
+               (?<cpulist>[^\n]+)\n/smx;
+
+  while ($c =~ m/$re/gsmx) {
+    say "PROCESSOR SET:" .  $+{psrset_id};
+    my @cpus = split(/\s+/,$+{cpulist});
+    say "  CPUS: " . join ", ", @cpus;
+  }
+}
+
+sub _pbind {
+
+}
+
+sub _parse_pbind {
+  my $self       = shift;
+  my $c          = shift;
+
 }
 
 =method _build_nics_in_use
