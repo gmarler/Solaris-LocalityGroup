@@ -7,8 +7,21 @@ use Data::Dumper             qw();
 use Test::Class::Moose;
 with 'Test::Class::Moose::Role::AutoUse';
 
+use Solaris::LocalityGroup::Root;
+
 Readonly::Scalar my $KSTAT  => '/bin/kstat';
 
+my $mock_cpu_kstats = [
+  "kstat-OPL-SPARC64-VII.out",
+  "kstat-M9000.out-N069",
+  "kstat-M5000.out-J078",
+  "kstat-T4-4.out",
+  "kstat-T4-4.out-P110",
+  "kstat-T5-2.out",
+  "kstat-T5-2.out-NJDSRV1",
+  "kstat-T5-4.out",
+  "kstat-T5-8.out",
+];
 
 sub test_startup {
   my ($test) = shift;
@@ -40,6 +53,24 @@ sub test_startup {
 
   #$test->{sockpath} = "/tmp/test_glogserver_sockpath.sock-$$";
   #diag "Test socket path will be $test->{sockpath}";
+
+  my (@mocked_kstats);
+  foreach my $kstat_file (@{$mock_cpu_kstats}) {
+    my $datafile = shift;
+    my $filepath =
+    Path::Class::File->new(__FILE__)->parent->parent->parent->parent->parent
+                     ->file("t","data",$kstat_file)
+                     ->absolute->stringify;
+
+    my $fh       = IO::File->new($filepath,"<") or
+    die "Unable to open $filepath for reading";
+  
+    my $content = do { local $/; <$fh>; };
+  
+    $fh->close;
+    push @mocked_kstats, $content;
+  }
+  $test->{mocked_kstats} = \@mocked_kstats;
 }
 
 sub test_setup {
@@ -57,19 +88,17 @@ sub test_setup {
   # }
 }
 
-sub test_parse_kstat_cpu_info {
+sub test_parse_live_kstat_cpu_info {
   my ($test) = shift;
 
-  my $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|cpu_type|device_ID|pg_id|state|state_begin\)\$/'};
-
-  #diag $stdout;
+  my $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|device_ID|pg_id|state|state_begin\)\$/'};
 
   cmp_ok(length($stdout), '>', 0, 'Actually got kstat output for cpu_info');
 
-  my $aref = Solaris::CPU->_parse_kstat_cpu_info($stdout);
-
-  #my $d = Data::Dumper->new( $aref );
-  #diag $d->Dump;
+  #
+  # NOTE: Using parser from Solaris::LocalityGroup::Root
+  #
+  my $aref = Solaris::LocalityGroup::Root->_parse_kstat_cpu_info($stdout);
 
   my $id_re = re('^\d+$');
   my $state_re = re('on-line|off-line|spare|no-intr');
@@ -78,7 +107,7 @@ sub test_parse_kstat_cpu_info {
     id          => $id_re,
     brand       => ignore(),
     chip_id     => $id_re,
-    #core_id     => ignore(),
+    core_id     => $id_re,
     device_ID   => $id_re,
     cpu_type    => ignore(),
     pg_id       => $id_re,
@@ -96,15 +125,41 @@ sub test_parse_kstat_cpu_info {
             );
 }
 
-sub test_new_from_kstat {
+sub test_parse_mocked_kstat_cpu_info {
   my ($test) = shift;
+  my (@mocked_kstats) = @{$test->{mocked_kstats}};
 
-  my $aref = Solaris::CPU->new_from_kstat();
+  my $id_re = re('^\d+$');
+  my $state_re = re('on-line|off-line|spare|no-intr');
 
-  cmp_deeply( $aref, array_each( isa('Solaris::CPU') ) );
+  my $cpu_cmp = {
+    id          => $id_re,
+    brand       => ignore(),
+    chip_id     => $id_re,
+    core_id     => $id_re,
+    device_ID   => $id_re,
+    cpu_type    => ignore(),
+    pg_id       => $id_re,
+    state       => $state_re,
+    state_begin => $id_re,
+  };
 
-  #my $d = Data::Dumper->new( $aref );
-  #diag $d->Dump;
+  foreach my $kstat_output (@mocked_kstats) {
+    #
+    # NOTE: Using parser from Solaris::LocalityGroup::Root
+    #
+    my $aref = Solaris::LocalityGroup::Root->_parse_kstat_cpu_info($kstat_output);
+    cmp_deeply( $aref,
+                array_each( isa('HASH') ),
+                'Data Parsing produces array of hashrefs'
+    );
+    cmp_deeply( $aref,
+                array_each( $cpu_cmp ),
+                'Parsed data has right hash format'
+    );
+
+
+  }
 }
 
 
