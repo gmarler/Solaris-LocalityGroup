@@ -288,7 +288,7 @@ sub test_constructor_mocked {
     # $pbind_Qc         = $mock_output->{$machtype}->{pbind_Qc};
 
     {
-      #package IPC::System::Simple;
+      no warnings 'redefine';   # Because we're redefining 'capture' here
       local *IPC::System::Simple::capture = sub {
         my $cmd = shift;
 
