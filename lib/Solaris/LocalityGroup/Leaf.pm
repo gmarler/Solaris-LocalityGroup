@@ -195,6 +195,28 @@ sub cpu_count {
   return $cpu_count;
 }
 
+=method cpus_avail_for_binding
+
+For this Locality Group Leaf, returns the list of CPUs / vCPUs / strands
+available for binding to a processor set, a thread, or an MCB group.
+
+RETURNS: an array reference of CPUs available for binding, if any
+
+=cut
+
+sub cpus_avail_for_binding {
+  my $self = shift;
+  my $cores_href = $self->cores;
+  my @avail_cpus;
+
+  foreach my $core_id (sort { $a <=> $b } keys %$cores_href) {
+    push @avail_cpus, @{$cores_href->{$core_id}->cpus_avail_for_binding};
+  }
+
+  return \@avail_cpus; 
+}
+
+
 =method print
 
 Print out information on this leaf Locality Group
@@ -230,14 +252,12 @@ for binding on a single line - this is the most terse format, and the one most
 
 sub print_cpu_avail_terse {
   my $self = shift;
-  my $cores_href = $self->cores;
+  # TODO: factor out and reimplement in terms of cpus_avail_for_binding() method
   my @avail_cpus;
 
   my $buf = "LGRP " . $self->id . ": ";
 
-  foreach my $core_id (sort { $a <=> $b } keys %$cores_href) {
-    push @avail_cpus, @{$cores_href->{$core_id}->cpus_avail_for_binding};
-  }
+  @avail_cpus = @{$self->cpus_avail_for_binding()};
 
   $buf .= join(" ", @avail_cpus);
   say $buf;
