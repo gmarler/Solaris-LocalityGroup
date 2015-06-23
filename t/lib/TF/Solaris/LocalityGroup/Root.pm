@@ -266,12 +266,12 @@ sub test_attrs_live {
 sub test_constructor_mocked {
   my $test = shift;
 
-  my @mocked_objs;
+  my (@mocked_objs,@mocked_objs_names);
 
-  foreach my $machtype (keys %$mock_output) {
+  foreach my $test_name (keys %$mock_output) {
     my $obj;
 
-    # say "MACHTYPE: $machtype";
+    # say "TEST NAME: $test_name";
 
     # Isolate this scope, so we can redefine capture for mocking
     {
@@ -279,30 +279,30 @@ sub test_constructor_mocked {
       local *IPC::System::Simple::capture = sub {
         my $cmd = shift;
 
-        # say "Inside capture() mock, MACHTYPE == $machtype";
+        # say "Inside capture() mock, TEST NAME == $test_name";
 
         if ($cmd =~ m/^$LGRPINFO/) {
-          return $mock_output->{$machtype}->{lgrpinfo}
+          return $mock_output->{$test_name}->{lgrpinfo}
         } elsif ($cmd =~ m/^$KSTAT\s+\-p\s+\'cpu_info/) {
-          return $mock_output->{$machtype}->{kstat};
+          return $mock_output->{$test_name}->{kstat};
         } elsif ($cmd =~ m/^$KSTAT\s+\-p\s+\'pci_intr/) {
-          return $mock_output->{$machtype}->{interrupts};
+          return $mock_output->{$test_name}->{interrupts};
         } elsif ($cmd =~ m/^$DLADM\s+show\-ether/) {
-          return $mock_output->{$machtype}->{dladm_show_ether};
+          return $mock_output->{$test_name}->{dladm_show_ether};
         } elsif ($cmd =~ m/^$PRTCONF\s+\-b/) {
-          return $mock_output->{$machtype}->{prtconf_b};
+          return $mock_output->{$test_name}->{prtconf_b};
         } elsif ($cmd =~ m/^$PSRSET/) {
-          return $mock_output->{$machtype}->{psrset};
+          return $mock_output->{$test_name}->{psrset};
         } elsif ($cmd =~ m/^$PBIND\s+\-Qc$/) {
-          if (defined($mock_output->{$machtype}->{pbind_Qc})) {
-            return $mock_output->{$machtype}->{pbind_Qc};
+          if (defined($mock_output->{$test_name}->{pbind_Qc})) {
+            return $mock_output->{$test_name}->{pbind_Qc};
           } else {
             # say "pbind -Qc output not specified in test";
             $? = 2 << 8;  # Set "return code / $CHILD_ERROR" == 2
             return; # undef
           }
         } elsif ($cmd =~ m/^$PBIND\s+\-Q$/) {
-          return $mock_output->{$machtype}->{pbind_Q};
+          return $mock_output->{$test_name}->{pbind_Q};
         } else {
           confess "NOT IMPLEMENTED: $cmd";
         }
@@ -311,7 +311,8 @@ sub test_constructor_mocked {
       $obj   = Solaris::LocalityGroup::Root->new( );
     }
 
-    push @mocked_objs, $obj;
+    push @mocked_objs,       $obj;
+    push @mocked_objs_names, $test_name;
     # TODO: machine specific tests are needed here
   }
 
@@ -333,8 +334,9 @@ sub test_constructor_mocked {
              array_each(array_each(isa("Solaris::LocalityGroup::Leaf"))),
              'Each Mocked LG Root has Leaves that are of the correct object type');
 
-  # Squirrel away mocked objects
-  $test->{mocked_root_objs} = \@mocked_objs;
+  # Squirrel away mocked objects and their associated test names
+  $test->{mocked_root_objs}       = \@mocked_objs;
+  $test->{mocked_root_objs_names} = \@mocked_objs_names;
 }
 
 sub test_core_count {
@@ -373,11 +375,14 @@ sub test_cpu_count {
 sub test_print_cpu_avail_terse_mocked {
   my $test = shift;
 
-  my @mocked_objs = @{$test->{mocked_root_objs}};
+  my @mocked_objs       = @{$test->{mocked_root_objs}};
+  my @mocked_objs_names = @{$test->{mocked_root_objs_names}};
 
-  foreach my $obj (@mocked_objs) {
+  for (my $index = 0; $index < scalar(@mocked_objs); $index++) {
     #isa_ok($obj, 'Solaris::LocalityGroup::Root');
+    my $obj = $mocked_objs[$index];
     stdout_like( sub { $obj->print_cpu_avail_terse }, qr/LGRP/,
+                '(' . $mocked_objs_names[$index] . ') ' .
                 $obj->platform . ': terse CPU list available for binding' );
     say $obj->print_cpu_avail_terse;
   }
