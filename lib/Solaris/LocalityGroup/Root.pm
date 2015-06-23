@@ -393,7 +393,7 @@ sub _psrset {
   my $stdout = IPC::System::Simple::capture("$PSRSET");
   # TODO: check state of command
   if ( not length($stdout) ) {
-    say "No output from psrset";
+    # say "No output from psrset";
     return; # undef
   }
  
@@ -411,9 +411,9 @@ sub _parse_psrset {
                (?<cpulist>[^\n]+)\n/smx;
 
   while ($c =~ m/$re/gsmx) {
-    say "PROCESSOR SET:" .  $+{psrset_id};
+    # say "PROCESSOR SET:" .  $+{psrset_id};
     my @cpus = split(/\s+/,$+{cpulist});
-    say "  CPUS: " . join ", ", @cpus;
+    # say "  CPUS: " . join ", ", @cpus;
   }
 }
 
@@ -430,7 +430,7 @@ sub _pbind_Q {
   my $stdout = IPC::System::Simple::capture("$PBIND -Q");
   # TODO: check state of command
   if ( not length($stdout) ) {
-    say "No output from pbind -Q";
+    # say "No output from pbind -Q";
     return; # undef
   }
  
@@ -501,7 +501,7 @@ sub _pbind_Qc {
   # another variant of this method can be called instead.
   my $status = $? >> 8;
 
-  say "pbind -Qc returned with status code: $status";
+  # say "pbind -Qc returned with status code: $status";
 
   if ($status == 2) {
     return 2;   # Return 2 to indicate that we need to call _pbind_Q() instead,
@@ -509,7 +509,7 @@ sub _pbind_Qc {
   }
 
   if ( not length($stdout) ) {
-    say "No output from pbind -Qc";
+    # say "No output from pbind -Qc";
     return; # undef
   }
  
@@ -594,7 +594,7 @@ sub _build_platform {
   my $output = IPC::System::Simple::capture("$PRTCONF -b");
   # TODO: check state of command
   if ( not length($output) ) {
-    say "No output from prtconf -b";
+    #  say "No output from prtconf -b";
     return; # undef
   }
   my $platform;

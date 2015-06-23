@@ -21,16 +21,10 @@ Readonly::Scalar my $PRTCONF  => '/sbin/prtconf';
 Readonly::Scalar my $PSRSET   => '/sbin/psrset';
 Readonly::Scalar my $PBIND    => '/sbin/pbind';
 
-#
-# The global contents of the current lgrpinfo / kstat output file, which will be
-# used by _mock_capture()
-#
-our ($lgrpinfo,$kstat,$interrupts,$dladm_show_ether,$prtconf_b);
-our ($psrset);
-our ($pbind_Q,$pbind_Qc);
 
+#
 # NOTE / WARNING: The "name" below must be unique, as this gets turned into a
-#                 hash later
+#                 hash later, and that is the hash key
 my $mock_files = {
   "M9000" =>   [
                  { # P019
@@ -277,22 +271,15 @@ sub test_constructor_mocked {
   foreach my $machtype (keys %$mock_output) {
     my $obj;
 
-    say "MACHTYPE: $machtype";
-    # $lgrpinfo         = $mock_output->{$machtype}->{lgrpinfo};
-    # $kstat            = $mock_output->{$machtype}->{kstat};
-    # $interrupts       = $mock_output->{$machtype}->{interrupts};
-    # $dladm_show_ether = $mock_output->{$machtype}->{dladm_show_ether};
-    # $prtconf_b        = $mock_output->{$machtype}->{prtconf_b};
-    # $psrset           = $mock_output->{$machtype}->{psrset};
-    # $pbind_Q          = $mock_output->{$machtype}->{pbind_Q};
-    # $pbind_Qc         = $mock_output->{$machtype}->{pbind_Qc};
+    # say "MACHTYPE: $machtype";
 
+    # Isolate this scope, so we can redefine capture for mocking
     {
       no warnings 'redefine';   # Because we're redefining 'capture' here
       local *IPC::System::Simple::capture = sub {
         my $cmd = shift;
 
-        say "Inside capture() mock, MACHTYPE == $machtype";
+        # say "Inside capture() mock, MACHTYPE == $machtype";
 
         if ($cmd =~ m/^$LGRPINFO/) {
           return $mock_output->{$machtype}->{lgrpinfo}
@@ -307,10 +294,10 @@ sub test_constructor_mocked {
         } elsif ($cmd =~ m/^$PSRSET/) {
           return $mock_output->{$machtype}->{psrset};
         } elsif ($cmd =~ m/^$PBIND\s+\-Qc$/) {
-          if (defined($pbind_Qc)) {
+          if (defined($mock_output->{$machtype}->{pbind_Qc})) {
             return $mock_output->{$machtype}->{pbind_Qc};
           } else {
-            say "pbind -Qc output not specified in test";
+            # say "pbind -Qc output not specified in test";
             $? = 2 << 8;  # Set "return code / $CHILD_ERROR" == 2
             return; # undef
           }
