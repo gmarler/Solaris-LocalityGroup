@@ -8,7 +8,7 @@ use Readonly                 qw();
 use Data::Dumper             qw();
 use Carp                     qw(confess);
 use Path::Class::File        qw();
-use Test::MockModule         qw();
+use IPC::System::Simple      qw(capture);
 
 use Test::Class::Moose;
 with 'Test::Class::Moose::Role::AutoUse';
@@ -16,19 +16,14 @@ use Test::Output;
 
 Readonly::Scalar my $KSTAT    => '/bin/kstat';
 Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
+Readonly::Scalar my $DLADM    => '/sbin/dladm';
+Readonly::Scalar my $PRTCONF  => '/sbin/prtconf';
+Readonly::Scalar my $PSRSET   => '/sbin/psrset';
+Readonly::Scalar my $PBIND    => '/sbin/pbind';
 
-# MOCK qx{}, backticks calls, so we can pass in known kstat / lgrpinfo from a
-# variety of different system types for testing
-our $mock_readpipe = sub { return &CORE::readpipe(@_); };
-
-BEGIN {
-  # Attempt to use https://gist.github.com/CUXIDUMDUM/7142813
-  #*CORE::GLOBAL::readpipe = sub { $mock_readpipe->(@_); };
-  *CORE::GLOBAL::readpipe = \&_mock_readpipe
-};
-
+#
 # The global contents of the current lgrpinfo / kstat output file, which will be
-# used by _mock_readpipe()
+# used by _mock_capture()
 #
 our ($lgrpinfo,$kstat,$interrupts,$dladm_show_ether,$prtconf_b);
 our ($psrset);
@@ -151,13 +146,9 @@ my $mock_files = {
                ],
 };
 
-# Prep this for population via the test_startup() function
+# The actual data extracted from the $mock_files above, but in a form that can
+# be directly inserted into constructors
 my $mock_output = {
-# "M9000"           => { },
-# "T4-4"            => { },
-#  "T5-2"            => { },
-# "T5-4"            => { },
-# "T5-8"            => { },
 };
 
 # On a Platform basis, the counts of various CPU related components, to be
@@ -235,16 +226,6 @@ sub test_startup {
     }
   }
 
-  # TODO: Get rid of this faking of the "live" run, once we do it properly below...
-  $lgrpinfo         = $mock_output->{"USER"}->{lgrpinfo};
-  $kstat            = $mock_output->{"USER"}->{kstat};
-  $interrupts       = $mock_output->{"USER"}->{interrupts};
-  $dladm_show_ether = $mock_output->{"USER"}->{dladm_show_ether};
-  $prtconf_b        = $mock_output->{"USER"}->{prtconf_b};
-  $psrset           = $mock_output->{"USER"}->{psrset};
-  $pbind_Qc         = $mock_output->{"USER"}->{pbind_Qc};
-  $pbind_Q          = $mock_output->{"USER"}->{pbind_Q};
-
   # $test->{ctor_args}  = $lgrp_specs_aref;
   # $test->{kstat_args} = $cpu_specs_aref;
 }
@@ -267,8 +248,6 @@ sub test_setup {
 # Test kstat / lgrpinfo without mocking them, live for this machine type
 sub test_attrs_live {
   my $test = shift;
-
-  diag "THIS TEST IS STILL BEING MOCKED! Needs to be live...";
 
   my $obj = Solaris::LocalityGroup::Root->new( );
 
@@ -296,35 +275,58 @@ sub test_constructor_mocked {
   my @mocked_objs;
 
   foreach my $machtype (keys %$mock_output) {
-    # say "MACHTYPE: $machtype";
-    $lgrpinfo   = $mock_output->{$machtype}->{lgrpinfo};
-    $kstat      = $mock_output->{$machtype}->{kstat};
-    $interrupts = $mock_output->{$machtype}->{interrupts};
-    $prtconf_b  = $mock_output->{$machtype}->{prtconf_b};
-    $psrset     = $mock_output->{$machtype}->{psrset};
-    $pbind_Q    = $mock_output->{$machtype}->{pbind_Q};
-    $pbind_Qc   = $mock_output->{$machtype}->{pbind_Qc};
+    my $obj;
 
-    my $obj   = Solaris::LocalityGroup::Root->new( );
+    say "MACHTYPE: $machtype";
+    # $lgrpinfo         = $mock_output->{$machtype}->{lgrpinfo};
+    # $kstat            = $mock_output->{$machtype}->{kstat};
+    # $interrupts       = $mock_output->{$machtype}->{interrupts};
+    # $dladm_show_ether = $mock_output->{$machtype}->{dladm_show_ether};
+    # $prtconf_b        = $mock_output->{$machtype}->{prtconf_b};
+    # $psrset           = $mock_output->{$machtype}->{psrset};
+    # $pbind_Q          = $mock_output->{$machtype}->{pbind_Q};
+    # $pbind_Qc         = $mock_output->{$machtype}->{pbind_Qc};
+
+    {
+      #package IPC::System::Simple;
+      local *IPC::System::Simple::capture = sub {
+        my $cmd = shift;
+
+        say "Inside capture() mock, MACHTYPE == $machtype";
+
+        if ($cmd =~ m/^$LGRPINFO/) {
+          return $mock_output->{$machtype}->{lgrpinfo}
+        } elsif ($cmd =~ m/^$KSTAT\s+\-p\s+\'cpu_info/) {
+          return $mock_output->{$machtype}->{kstat};
+        } elsif ($cmd =~ m/^$KSTAT\s+\-p\s+\'pci_intr/) {
+          return $mock_output->{$machtype}->{interrupts};
+        } elsif ($cmd =~ m/^$DLADM\s+show\-ether/) {
+          return $mock_output->{$machtype}->{dladm_show_ether};
+        } elsif ($cmd =~ m/^$PRTCONF\s+\-b/) {
+          return $mock_output->{$machtype}->{prtconf_b};
+        } elsif ($cmd =~ m/^$PSRSET/) {
+          return $mock_output->{$machtype}->{psrset};
+        } elsif ($cmd =~ m/^$PBIND\s+\-Qc$/) {
+          if (defined($pbind_Qc)) {
+            return $mock_output->{$machtype}->{pbind_Qc};
+          } else {
+            say "pbind -Qc output not specified in test";
+            $? = 2 << 8;  # Set "return code / $CHILD_ERROR" == 2
+            return; # undef
+          }
+        } elsif ($cmd =~ m/^$PBIND\s+\-Q$/) {
+          return $mock_output->{$machtype}->{pbind_Q};
+        } else {
+          confess "NOT IMPLEMENTED: $cmd";
+        }
+      };
+
+      $obj   = Solaris::LocalityGroup::Root->new( );
+    }
+
     push @mocked_objs, $obj;
     # TODO: machine specific tests are needed here
   }
-
-  # Attempt to use: https://gist.github.com/CUXIDUMDUM/7142813
-  # {
-  #   my $module = Test::MockModule->new('Solaris::LocalityGroup::Root');
-  #   $module->mock(
-  #     '_build_lgrp_leaves',
-  #     sub {
-  #       local $mock_readpipe = sub { die "mocked" };
-  #       my $orig = $module->original('_build_lgrp_leaves');
-  #       return $orig->(@_);
-  #     }
-  #   );
-  #   my $obj   = Solaris::LocalityGroup::Root->new( );
-  #   push @mocked_objs, $obj;
-  #   $obj->print_cpu_avail_terse;
-  # }
 
   # Are Root objects correct?
   my $ctests = all( isa("Solaris::LocalityGroup::Root"), );
@@ -383,15 +385,6 @@ sub test_cpu_count {
 
 sub test_print_cpu_avail_terse_mocked {
   my $test = shift;
-
-#  # Get the T4-4 item off the mock_output list for testing at the moment
-#  # NOTE: This is currently setting a global 'our' variable pair
-#  $lgrpinfo         = $mock_output->{'T5-4'}->{lgrpinfo};
-#  $kstat            = $mock_output->{'T5-4'}->{kstat};
-#  $interrupts       = $mock_output->{'T5-4'}->{interrupts};
-#  $dladm_show_ether = $mock_output->{'T5-4'}->{dladm_show_ether};
-#
-#  my $obj = Solaris::LocalityGroup::Root->new( );
 
   my @mocked_objs = @{$test->{mocked_root_objs}};
 
@@ -459,34 +452,7 @@ sub _parse_kstat_cpu_info {
 }
 
 
-sub _mock_readpipe {
-  my $cmd = shift;
-
-  if ($cmd =~ m/^\$LGRPINFO/) {
-    return $lgrpinfo;
-  } elsif ($cmd =~ m/^\$KSTAT\s+\-p\s+\'cpu_info/) {
-    return $kstat;
-  } elsif ($cmd =~ m/^\$KSTAT\s+\-p\s+\'pci_intr/) {
-    return $interrupts;
-  } elsif ($cmd =~ m/^\$DLADM\s+show-ether/) {
-    return $dladm_show_ether;
-  } elsif ($cmd =~ m/^\$PRTCONF\s+\-b/) {
-    return $prtconf_b;
-  } elsif ($cmd =~ m/^\$PSRSET/) {
-    return $psrset;
-  } elsif ($cmd =~ m/^\$PBIND\s+\-Qc$/) {
-    if (defined($pbind_Qc)) {
-      return $pbind_Qc;
-    } else {
-      say "pbind -Qc output not specified in test";
-      $? = 2 << 8;  # Set "return code / $CHILD_ERROR" == 2
-      return; # undef
-    }
-  } elsif ($cmd =~ m/^\$PBIND\s+\-Q$/) {
-    return $pbind_Q;
-  } else {
-    confess "NOT IMPLEMENTED";
-  }
+sub _mock_capture {
 }
 
 sub _load_mock_data {

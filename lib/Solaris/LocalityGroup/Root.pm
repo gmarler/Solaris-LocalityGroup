@@ -15,6 +15,7 @@ use MooseX::ClassAttribute;
 with 'MooseX::Log::Log4perl';
 use Data::Dumper;
 use Solaris::LocalityGroup::Leaf;
+use IPC::System::Simple qw(capture);
 
 use namespace::autoclean;
 
@@ -165,13 +166,13 @@ sub _build_lgrp_leaves {
   my @leaves;
 
   # Obtain LG leaf topology
-  my $stdout = qx{$LGRPINFO -cCG};
+  my $stdout = IPC::System::Simple::capture("$LGRPINFO -cCG");
   # TODO: if command failed, generate an exception
   # say "LGRPINFO:\n$stdout";
   my $lgrp_specs_aref = $self->_parse_lgrpinfo($stdout);
 
   # Obtain CPU specific info
-  $stdout = qx{$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'};
+  $stdout = IPC::System::Simple::capture("$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'");
   my $cpu_specs_aref  = $self->_parse_kstat_cpu_info($stdout);
 
   # Obtain interrupt information
@@ -299,7 +300,7 @@ sub _kstat_interrupts {
   my $self = shift;
 
   my $stdout =
-    qx{$KSTAT -p 'pci_intrs::config:/^\(?:name|cpu|type|pil\)\$/'};
+    IPC::System::Simple::capture("$KSTAT -p 'pci_intrs::config:/^\(?:name|cpu|type|pil\)\$/'");
 
   return $stdout;
 }
@@ -389,7 +390,7 @@ sub _parse_kstat_interrupts {
 sub _psrset {
   my $self = shift;
 
-  my $stdout = qx{$PSRSET};
+  my $stdout = IPC::System::Simple::capture("$PSRSET");
   # TODO: check state of command
   if ( not length($stdout) ) {
     say "No output from psrset";
@@ -426,7 +427,7 @@ This method will only be called if _pbind_Qc cannot be called (it's not Solaris
 sub _pbind_Q {
   my $self = shift;
 
-  my $stdout = qx{$PBIND -Q};
+  my $stdout = IPC::System::Simple::capture("$PBIND -Q");
   # TODO: check state of command
   if ( not length($stdout) ) {
     say "No output from pbind -Q";
@@ -449,7 +450,7 @@ sub _parse_pbind_Q {
 
   my %bound_cpus;
 
-  say "_parse_pbind_Q() received this input:\n$c";
+  # say "_parse_pbind_Q() received this input:\n$c";
 
   # The point here is to obtain
   # 1. CPUs that have threads bound to them
@@ -476,8 +477,8 @@ sub _parse_pbind_Q {
     $bound_cpus{$+{cpu}}++;
   }
 
-  say "BOUND CPUS: " .
-    Dumper( [ sort { $a <=> $b } keys %bound_cpus ] );
+  #say "BOUND CPUS: " .
+  #  Dumper( [ sort { $a <=> $b } keys %bound_cpus ] );
 
   return \%bound_cpus;
 }
@@ -493,7 +494,7 @@ of CPUs.
 sub _pbind_Qc {
   my $self = shift;
 
-  my $stdout = qx{$PBIND -Qc};
+  my $stdout = IPC::System::Simple::capture("$PBIND -Qc");
   # TODO: check state of command
   # If this is prior to Solaris 11.2, the arguments to pbind are quite
   # different, as is the output.  We need to handle that case separately, so
@@ -519,7 +520,7 @@ sub _parse_pbind_Qc {
   my $self       = shift;
   my $c          = shift;
 
-  say "_parse_pbind_Qc() received this input:\n$c";
+  # say "_parse_pbind_Qc() received this input:\n$c";
 
   my %bound_cpus;
 
@@ -549,8 +550,8 @@ sub _parse_pbind_Qc {
     }
   }
 
-  say "BOUND CPUS: " .
-    Dumper( [ sort { $a <=> $b } keys %bound_cpus ] );
+  #say "BOUND CPUS: " .
+  #  Dumper( [ sort { $a <=> $b } keys %bound_cpus ] );
 
   return \%bound_cpus;
 }
@@ -568,8 +569,9 @@ sub _build_nics_in_use {
   my $self = shift;
   my @nics;
 
-  my $output = qx{$DLADM show-ether -p -o link,state};
+  my $output = IPC::System::Simple::capture("$DLADM show-ether -p -o link,state");
   # TODO: check state of command
+
   while ($output =~ m{^([^:]+):([^\n]+)\n}gsmx) {
     my ($link,$state) = ($1, $2);
     if ($state eq "up") {
@@ -589,7 +591,7 @@ Based on the output of prtconf -b, deduce the platform name
 sub _build_platform {
   my $self = shift;
 
-  my $output = qx{$PRTCONF -b};
+  my $output = IPC::System::Simple::capture("$PRTCONF -b");
   # TODO: check state of command
   if ( not length($output) ) {
     say "No output from prtconf -b";
