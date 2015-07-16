@@ -1,0 +1,6 @@
+#!/usr/perl5/5.22.0/bin/perl
+
+use Solaris::LocalityGroup::App;
+
+Solaris::LocalityGroup::App->run();
+
