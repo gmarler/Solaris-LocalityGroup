@@ -1,6 +1,5 @@
 # Avoid editor temp files
-*.swp
-*.swo
+*.sw[p-z]
 # Avoid utility files
 .build
 _build
