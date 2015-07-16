@@ -2,9 +2,9 @@ use strict;
 use warnings;
 
 package Solaris::LocalityGroup::App;
-
+# VERSION
+#
 use Moose;
-
 extends qw(MooseX::App::Cmd);
 
 
