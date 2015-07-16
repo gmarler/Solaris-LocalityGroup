@@ -8,6 +8,9 @@ use Moose;
 extends qw(MooseX::App::Cmd);
 
 
+
+
+
 package Solaris::LocalityGroup::App::Command::terse;
 
 use Moose;
@@ -21,5 +24,8 @@ sub execute {
   my $root_lg = Solaris::LocalityGroup::Root->new();
   $root_lg->print_cpu_avail_terse();
 }
+
+
+
 
 1;
