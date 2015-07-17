@@ -436,7 +436,7 @@ sub _parse_kstat_cpu_info {
                     { id => $cpu_id,
                       map {
                         $_ => $cpu_ctor_args{$cpu_id}->{$_};
-                      } keys $cpu_ctor_args{$cpu_id},
+                      } keys %{$cpu_ctor_args{$cpu_id}},
                     };
                   } keys %cpu_ctor_args;
 
