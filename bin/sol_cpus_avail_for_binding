@@ -1,5 +1,8 @@
 #!/usr/perl5/5.22.0/bin/perl
 
+use strict;
+use warnings;
+
 # PODNAME: sol_cpus_avail_for_binding: CPUS available for binding on Solaris
 # VERSION
 #
