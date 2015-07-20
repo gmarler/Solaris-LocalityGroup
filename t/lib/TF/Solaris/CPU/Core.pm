@@ -11,6 +11,8 @@ use Test::Class::Moose;
 with 'Test::Class::Moose::Role::AutoUse';
 use Test::Output;
 
+use Solaris::LocalityGroup::Root;
+
 Readonly::Scalar my $KSTAT    => '/bin/kstat';
 Readonly::Scalar my $LGRPINFO => '/bin/lgrpinfo';
 
@@ -48,7 +50,7 @@ sub test_startup {
   #
   my $stdout = qx{$LGRPINFO -cCG};
 
-  my $lgrp_specs_aref = __PACKAGE__->_parse_lgrpinfo($stdout);
+  my $lgrp_specs_aref = Solaris::LocalityGroup::Root->_parse_lgrpinfo($stdout);
 
   $test->{ctor_args} = $lgrp_specs_aref;
 }

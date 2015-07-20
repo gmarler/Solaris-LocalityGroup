@@ -64,7 +64,7 @@ sub test_attrs {
 
   isa_ok($obj, 'Solaris::LocalityGroup', 'object is of proper class');
 
-  can_ok($obj, qw( type ) );
+  can_ok($obj, qw( new ) );
 }
 
 1;

@@ -7,6 +7,8 @@ use Data::Dumper             qw();
 use Test::Class::Moose;
 with 'Test::Class::Moose::Role::AutoUse';
 
+use Solaris::LocalityGroup::Root;
+
 Readonly::Scalar my $KSTAT  => '/bin/kstat';
 
 my $mock_cpu_kstats = {
