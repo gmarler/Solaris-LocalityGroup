@@ -101,9 +101,16 @@ sub _build_cpu_objects {
 }
 
 
+=method $core->print
+
+Print out the CPUs that make up this core instance.
+
+=cut
 
 sub print {
   my ($self) = shift;
+
+  # TODO: Refactor in terms of format() below
   my $cpus_aref = $self->cpus;
   my $buf;
 
@@ -112,6 +119,15 @@ sub print {
   }
   say $buf;
 }
+
+=method $core->format
+
+Format the output of the CPUs that make up this core instance.
+
+Returns the formatted output for emitting / printing later
+
+=cut
+
 
 sub format {
   my ($self) = shift;
