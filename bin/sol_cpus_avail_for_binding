@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use lib '/bb/pm/lib/perl5';
+BEGIN { push @INC, qw(/bb/pm/lib/perl5); }
 
 # PODNAME: sol_cpus_avail_for_binding: CPUS available for binding on Solaris
 # VERSION
