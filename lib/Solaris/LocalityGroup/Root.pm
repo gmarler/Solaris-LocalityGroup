@@ -172,7 +172,8 @@ sub _build_lgrp_leaves {
   my $lgrp_specs_aref = $self->_parse_lgrpinfo($stdout);
 
   # Obtain CPU specific info
-  $stdout = IPC::System::Simple::capture("$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'");
+  $stdout = IPC::System::Simple::capture(
+    "$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'");
   my $cpu_specs_aref  = $self->_parse_kstat_cpu_info($stdout);
 
   # Obtain interrupt information
@@ -217,6 +218,7 @@ sub _build_lgrp_leaves {
                                      $lgrp_ctor_args->{cpulast}, ],
                  core_data      => $cpu_specs_aref,
                  interrupt_data => $interrupts_aref,
+                 pset_data      => $psrset_aref,
                  binding_data   => $pbind_href,
                );
     push @leaves, $leaf;
@@ -425,6 +427,7 @@ sub _parse_psrset {
     push @pset_cpus, split(/\s+/,$+{cpulist});
     # say "  CPUS: " . join ", ", @cpus;
   }
+  @pset_cpus = sort { $a <=> $b } @pset_cpus;
   return \@pset_cpus;
 }
 
