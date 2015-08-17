@@ -188,6 +188,7 @@ sub _build_lgrp_leaves {
   if ($stdout) {
     $psrset_aref = $self->_parse_psrset($stdout);
   }
+  say "PSETS:\n" . Dumper( $psrset_aref );
 
   # Obtain single pbind and MCB bound information
   my $pbind_href;
@@ -202,6 +203,8 @@ sub _build_lgrp_leaves {
     $pbind_href = $self->_parse_pbind_Qc($stdout);
   }
 
+  say "BINDINGS:\n" . Dumper( $pbind_href );
+
   #
   # TODO: ONLY PASS PSET/PBIND info on IF THEY ACTUALLY EXIST!
   #
@@ -214,6 +217,7 @@ sub _build_lgrp_leaves {
                                      $lgrp_ctor_args->{cpulast}, ],
                  core_data      => $cpu_specs_aref,
                  interrupt_data => $interrupts_aref,
+                 binding_data   => $pbind_href,
                );
     push @leaves, $leaf;
   }
@@ -400,10 +404,16 @@ sub _psrset {
   return $stdout;
 }
 
+#
+# We only want the list of CPUs that are members of exclusive psets, as we will
+# want to mark such CPUs as "oversubscribed" if they are in use in any other
+# context, such as interrupt handling for latency sensitive NICs and such.
+#
 sub _parse_psrset {
   my $self       = shift;
   my $c          = shift;
- 
+
+  my @pset_cpus;
   # NOTE: cpulist will be space separated
   my $re = qr/^user \s processor \s set \s 
                (?<psrset_id>\d+) :
@@ -412,9 +422,10 @@ sub _parse_psrset {
 
   while ($c =~ m/$re/gsmx) {
     # say "PROCESSOR SET:" .  $+{psrset_id};
-    my @cpus = split(/\s+/,$+{cpulist});
+    push @pset_cpus, split(/\s+/,$+{cpulist});
     # say "  CPUS: " . join ", ", @cpus;
   }
+  return \@pset_cpus;
 }
 
 =method _pbind_Q

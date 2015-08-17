@@ -46,10 +46,18 @@ has 'chip_id' => ( isa => 'Num', is => 'ro', required => 1 );
 # PG ID (not sure this is that useful at the moment - mpstat uses it)
 has 'pg_id'   => ( isa => 'Num', is => 'ro', required => 1 );
 # One or more interrupt may be assigned to a CPU
-has 'interrupts' =>
-                 ( isa => 'ArrayRef|Undef',
-                   is  => 'ro',
-                 );
+has 'interrupts' => (
+  isa         => 'ArrayRef|Undef',
+  is          => 'ro',
+  default     => undef,
+);
+
+# One or more PIDs and a subset of their threads may be bound to a CPU
+has 'bindings' => (
+  is          => 'ro',
+  isa         => 'ArrayRef|Undef',
+  default     => undef,
+);
 
 =method in_use
 
@@ -79,8 +87,10 @@ sub in_use {
   if (defined($self->interrupts)) {
     return 1;
   }
-  # TODO: Check whether pbound to
-  # TODO: Check whether part of a pset
+  # Check whether pbound to or part of a pset
+  if (defined($self->bindings)) {
+    return 1;
+  }
 
   # If we got this far, this CPU is not in use
   return 0;
@@ -113,6 +123,14 @@ sub interrupts_assigned {
   my $iaref = $self->interrupts_for;
 
   return scalar(@{$iaref});
+}
+
+=method bindings_assigned
+
+=cut
+
+sub bindings_assigned {
+  my $self = shift;
 }
 
 =method oversubscribed
