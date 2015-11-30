@@ -195,7 +195,7 @@ sub cpus_avail_for_binding {
 
   my $avail_aref = [];
   # say "Core $core_id has $in_use CPUs in use";
-  if ($in_use > $max_avail) {
+  if ($in_use >= $max_avail) {
     # TODO: Make this a warning
     # say "CORE $core_id is " . colored(['red bold'], 'OVERSUBSCRIBED');
     # nothing to do - will already return empty list
