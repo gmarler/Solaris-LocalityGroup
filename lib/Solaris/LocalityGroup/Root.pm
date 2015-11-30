@@ -45,7 +45,6 @@ has 'leaves'    => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
 # of their interrupts bound to a CPU, we make sure we mark that CPU as being
 # "used" and not bindable otherwise.
 #
-# TODO
 # So that we don't mark too many CPUs unusable, expecially for NICs that are not
 # even in use, we want to take the data we retrieved into attribute nics_in_use
 # and ignore any other interrupts 
@@ -321,7 +320,7 @@ sub _parse_kstat_interrupts {
   my $c          = shift;
 
   my @nics_in_use = @{$self->nics_in_use};
-  say "NICS in use: " . Dumper(\@nics_in_use);
+  # say "NICS in use: " . Dumper(\@nics_in_use);
 
   my @ctor_args;
 
