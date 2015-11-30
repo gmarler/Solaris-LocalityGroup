@@ -585,7 +585,8 @@ sub _build_nics_in_use {
   # TODO check state of command
 
   # We only want to NIC interrupts that are "important"
-  my $important_interrupts_re = $self->important_interrupts_re;
+  # my $important_interrupts_re = $self->important_interrupts_re;
+  my $important_interrupts_re = qr/^(nxge|igb|ixgbe)/;
 
   while ($output =~ m{^([^:]+):([^\n]+)\n}gsmx) {
     my ($link,$state) = ($1, $2);
