@@ -161,7 +161,7 @@ sub _build_core_objects {
   # Then create hashref of Core objects, with the key being the core_id
   #
   foreach my $core_id (sort keys %core_ctor) {
-    say Data::Dumper::Dumper(\$core_ctor{$core_id});
+    # say Data::Dumper::Dumper(\$core_ctor{$core_id});
     my $core =
       Solaris::CPU::Core->new( id       => $core_id,
                                cpu_data => $core_ctor{$core_id},
