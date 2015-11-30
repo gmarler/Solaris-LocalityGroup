@@ -137,6 +137,30 @@ sub _build_core_objects {
   if ($binding_data) { say "BINDING DATA: " .
                        Data::Dumper::Dumper( $binding_data ) };
 
+  # Add information on CPUs that are part of PSETS, if they exist
+  foreach my $core_data (@core_data) {
+    if ( grep { $_ == $core_data->{id} } @$pset_data ) {
+      $core_data->{in_pset}++;
+      #say "CPU " . $core_data->{id} . " is in a PSET";
+    }
+  }
+
+  # Add information on CPUs that are BOUND to by one or more threads, if they
+  # exist
+  foreach my $core_data (@core_data) {
+    if ( grep { $_ == $core_data->{id} } keys %$binding_data ) {
+      $core_data->{bindings}++;
+    }
+    if (exists($core_data->{bindings}) and $core_data->{bindings}) {
+      say "CPU " . $core_data->{id} . " has " . $core_data->{bindings} .
+          " threads BOUND to it";
+    }
+  }
+
+
+  # Add information on CPUs that have threads bound to them explicitly, whether
+  # singularly or MCB.
+  
   # Add information on interrupts assigned to individual CPUs, if they exist
   foreach my $core_data (@core_data) {
     if (exists($interrupt_data{$core_data->{id}})) {

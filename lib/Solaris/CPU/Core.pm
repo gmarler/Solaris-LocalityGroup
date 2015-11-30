@@ -88,12 +88,17 @@ sub _build_cpu_objects {
     # Whittle this down to what we actually use now
     #say Data::Dumper::Dumper(\$ctor_data_href);
     my %ctor_args = map { $_ => $ctor_data_href->{$_}; }
-                    qw( id brand state core_id chip_id pg_id interrupts );
+                    qw( id brand state core_id chip_id pg_id interrupts in_pset
+                        bindings );
     #say Data::Dumper::Dumper(\%ctor_args);
     push @cpu_objs, Solaris::CPU->new( \%ctor_args );
   }
 
   # say Data::Dumper::Dumper(\@cpu_objs);
+  #foreach my $cpu_obj (@cpu_objs) {
+  #  say "CPU " . $cpu_obj->id . " is in a PSET" if ($cpu_obj->in_pset);
+  #  say "CPU " . $cpu_obj->id . " has threads BOUND to it" if ($cpu_obj->bindings);
+  #}
 
   # Return completed set of CPU objects
   return \@cpu_objs;

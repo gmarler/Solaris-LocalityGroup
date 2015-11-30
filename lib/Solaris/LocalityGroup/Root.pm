@@ -208,7 +208,7 @@ sub _build_lgrp_leaves {
     $pbind_href = $self->_parse_pbind_Qc($stdout);
   }
 
-  say "BINDINGS:\n" . Dumper( $pbind_href );
+  #say "BINDINGS:\n" . Dumper( $pbind_href );
 
   #
   # TODO: ONLY PASS PSET/PBIND info on IF THEY ACTUALLY EXIST!

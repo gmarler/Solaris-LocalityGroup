@@ -61,10 +61,11 @@ has 'in_pset' => (
 );
 
 # One or more PIDs and a subset of their threads may be bound to a CPU
+# Right now, we just keep a count of how many, not which ones.
 has 'bindings' => (
+  isa         => 'Int|Undef',
   is          => 'ro',
-  isa         => 'ArrayRef|Undef',
-  default     => undef,
+  default     => 0,
 );
 
 =method in_use
