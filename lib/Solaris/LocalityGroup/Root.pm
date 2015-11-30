@@ -45,6 +45,11 @@ has 'leaves'    => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
 # of their interrupts bound to a CPU, we make sure we mark that CPU as being
 # "used" and not bindable otherwise.
 #
+# TODO
+# So that we don't mark too many CPUs unusable, expecially for NICs that are not
+# even in use, we want to take the data we retrieved into attribute nics_in_use
+# and ignore any other interrupts 
+#
 # Any other drivers generally don't consume much of a CPU, so their not likely
 # to be worth excluding the CPU from our binding.
 #
@@ -316,11 +321,9 @@ sub _parse_kstat_interrupts {
   my $c          = shift;
 
   my @nics_in_use = @{$self->nics_in_use};
-  # say "NICS in use: " . Dumper(\@nics_in_use);
+  say "NICS in use: " . Dumper(\@nics_in_use);
 
   my @ctor_args;
-
-  my $important_interrupts_re = qr/^(nxge|igb|ixgbe)/;
 
   my (@lines) = split /\n/, $c;
 
@@ -330,7 +333,7 @@ sub _parse_kstat_interrupts {
   # Parse each individual property line for this interrupt
   #
   # Each line has a unique "key", which itself is meaningless.  It just
-  # signified when we've moved from one multiline interrupt record to the next.
+  # signifies when we've moved from one multiline interrupt record to the next.
   #
   # So we keep track of the "lastkey" to know when we've moved to the next
   # multiline interrupt record.
@@ -360,13 +363,6 @@ sub _parse_kstat_interrupts {
   foreach my $entry (keys %coalesce) {
     my $key   = $coalesce{$entry}->{cpu};
     my $value = $coalesce{$entry}->{name};
-    # Ignore / skip "non-important" interrupts
-    #say "ENTRY:     $value";
-    #say "IMPORTANT: $important_interrupts_re";
-    if ($value !~ $important_interrupts_re) {
-      #say "Skipping non-important: $value";
-      next;
-    }
     # TODO: ignore / skip interrupts for NICs that are not in use
     if (  grep(/^$value$/, @nics_in_use) ) {
       #say "including NIC: $value";
@@ -380,6 +376,9 @@ sub _parse_kstat_interrupts {
     }
     push @{$interrupt_ctor_args{$key}}, $value;
   }
+
+  # Look to see if the interrupts of interest look right
+  #say Dumper( \%interrupt_ctor_args );
 
   # Sort numerically by CPU
   @ctor_args = map {
@@ -584,11 +583,15 @@ sub _build_nics_in_use {
   my @nics;
 
   my $output = IPC::System::Simple::capture("$DLADM show-ether -p -o link,state");
-  # TODO: check state of command
+  # TODO check state of command
+
+  # We only want to NIC interrupts that are "important"
+  my $important_interrupts_re = $self->important_interrupts_re;
 
   while ($output =~ m{^([^:]+):([^\n]+)\n}gsmx) {
     my ($link,$state) = ($1, $2);
-    if ($state eq "up") {
+    # If the link is "up" and it's "important"
+    if (($state eq "up") and ($link =~ m/$important_interrupts_re/smx)) {
       push @nics, $link;
     }
   }

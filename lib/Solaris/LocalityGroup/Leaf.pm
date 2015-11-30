@@ -65,14 +65,26 @@ override BUILDARGS => sub {
   if (exists($args{'core_data'})) {
     my $cpu_info = $args{'core_data'};
     delete $args{'core_data'};
-    my $interrupt_info;
+    my ($interrupt_info,$pset_data,$binding_data);
     if (exists($args{'interrupt_data'})) {
       $interrupt_info = $args{'interrupt_data'};
       delete $args{'interrupt_data'};
     }
+    if (exists($args{'pset_data'})) {
+      $pset_data = $args{'pset_data'};
+      delete $args{'pset_data'};
+    }
+    if (exists($args{'binding_data'})) {
+      $binding_data = $args{'binding_data'};
+      delete $args{'binding_data'};
+    }
     my $cores_href =
-      $self->_build_core_objects($args{'id'},$args{'cpu_range'}, $cpu_info,
-                                 $interrupt_info);
+      $self->_build_core_objects(
+        $args{'id'},$args{'cpu_range'}, $cpu_info,
+        $interrupt_info,
+        $pset_data,
+        $binding_data,
+      );
     return { cores => $cores_href, %args };
   }
 
@@ -93,6 +105,8 @@ sub _build_core_objects {
   my $cpu_range_aref = shift;
   my $cpu_info       = shift;
   my $interrupt_info = shift;
+  my $pset_data      = shift;
+  my $binding_data   = shift;
 
   my $cpu_first      = $cpu_range_aref->[0];
   my $cpu_last       = $cpu_range_aref->[1];

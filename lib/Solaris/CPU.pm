@@ -45,11 +45,19 @@ has 'core_id' => ( isa => 'Num', is => 'ro', required => 1 );
 has 'chip_id' => ( isa => 'Num', is => 'ro', required => 1 );
 # PG ID (not sure this is that useful at the moment - mpstat uses it)
 has 'pg_id'   => ( isa => 'Num', is => 'ro', required => 1 );
+
 # One or more interrupt may be assigned to a CPU
 has 'interrupts' => (
   isa         => 'ArrayRef|Undef',
   is          => 'ro',
   default     => undef,
+);
+
+# Is this CPU in a pset?
+has 'in_pset' => (
+  isa         => 'Bool',
+  is          => 'ro',
+  default     => 0,
 );
 
 # One or more PIDs and a subset of their threads may be bound to a CPU
@@ -87,7 +95,11 @@ sub in_use {
   if (defined($self->interrupts)) {
     return 1;
   }
-  # Check whether pbound to or part of a pset
+  # Is this CPU in a pset?
+  if ($self->in_pset) {
+    return 1;
+  }
+  # Is this CPU bound to by any thread?
   if (defined($self->bindings)) {
     return 1;
   }
@@ -116,7 +128,6 @@ ignored / not counted.
 
 =cut
 
-
 sub interrupts_assigned {
   my $self = shift;
 
@@ -124,6 +135,7 @@ sub interrupts_assigned {
 
   return scalar(@{$iaref});
 }
+
 
 =method bindings_assigned
 
@@ -133,16 +145,30 @@ sub bindings_assigned {
   my $self = shift;
 }
 
-=method oversubscribed
 
-This method will return true if there are too many threads are bound to or too
-manyinterrupts assigned to this CPU.
+=method is_oversubscribed
+
+This method will return true if:
+
+=for :list
+* The CPU is part of a pset, B<AND> it's handling an important interrupt.
+* There are threads bound to the CPU, B<AND> it's handling an important
+  interrupt.
+* There are too many interrupts assigned to the CPU, from the B<SAME> device.
+
+Things which may be considered as falling into this category in a future
+release of this module are:
+
+=for :list
+* There are too many threads from too many PIDs bound to the CPU.
+* There are too many interrupts from different source devices assigned
+  to the CPU.
 
 Where "too many" is the subjective > 1.
 
 =cut
 
-sub oversubscribed {
+sub is_oversubscribed {
   my $self = shift;
 
 }
