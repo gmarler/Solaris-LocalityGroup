@@ -89,7 +89,7 @@ sub _build_cpu_objects {
     #say Data::Dumper::Dumper(\$ctor_data_href);
     my %ctor_args = map { $_ => $ctor_data_href->{$_}; }
                     qw( id brand state core_id chip_id pg_id interrupts );
-    say Data::Dumper::Dumper(\%ctor_args);
+    #say Data::Dumper::Dumper(\%ctor_args);
     push @cpu_objs, Solaris::CPU->new( \%ctor_args );
   }
 

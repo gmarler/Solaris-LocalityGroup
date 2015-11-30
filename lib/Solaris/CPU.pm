@@ -92,6 +92,7 @@ This CPU is a member of a processor set
 sub in_use {
   my $self = shift;
 
+  # Does ths CPU have "important" interrupts assigned to it?
   if (defined($self->interrupts)) {
     return 1;
   }
@@ -146,7 +147,7 @@ sub bindings_assigned {
 }
 
 
-=method is_oversubscribed
+=method is_oversubscribed (NOT IMPLEMENTED YET)
 
 This method will return true if:
 
