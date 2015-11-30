@@ -132,10 +132,10 @@ sub _build_core_objects {
     map { [ $_, $_->{core_id}, $_->{id} ] }
     @cpu_data;
 
-  if ($pset_data)    { say "PSET DATA: " .
-                       Data::Dumper::Dumper( $pset_data ) };
-  if ($binding_data) { say "BINDING DATA: " .
-                       Data::Dumper::Dumper( $binding_data ) };
+  # if ($pset_data)    { say "PSET DATA: " .
+  #                      Data::Dumper::Dumper( $pset_data ) };
+  # if ($binding_data) { say "BINDING DATA: " .
+  #                      Data::Dumper::Dumper( $binding_data ) };
 
   # Add information on CPUs that are part of PSETS, if they exist
   foreach my $core_data (@core_data) {
@@ -150,10 +150,9 @@ sub _build_core_objects {
   foreach my $core_data (@core_data) {
     if ( grep { $_ == $core_data->{id} } keys %$binding_data ) {
       $core_data->{bindings}++;
-    }
-    if (exists($core_data->{bindings}) and $core_data->{bindings}) {
-      say "CPU " . $core_data->{id} . " has " . $core_data->{bindings} .
-          " threads BOUND to it";
+      # say "CPU " . $core_data->{id} . " has " .
+      #     $binding_data->{$core_data->{id}} .
+      #     " threads BOUND to it";
     }
   }
 
