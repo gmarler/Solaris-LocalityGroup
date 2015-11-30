@@ -193,7 +193,7 @@ sub _build_lgrp_leaves {
   if ($stdout) {
     $psrset_aref = $self->_parse_psrset($stdout);
   }
-  say "PSETS:\n" . Dumper( $psrset_aref );
+  #say "PSETS:\n" . Dumper( $psrset_aref );
 
   # Obtain single pbind and MCB bound information
   my $pbind_href;

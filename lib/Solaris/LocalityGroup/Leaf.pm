@@ -132,6 +132,11 @@ sub _build_core_objects {
     map { [ $_, $_->{core_id}, $_->{id} ] }
     @cpu_data;
 
+  if ($pset_data)    { say "PSET DATA: " .
+                       Data::Dumper::Dumper( $pset_data ) };
+  if ($binding_data) { say "BINDING DATA: " .
+                       Data::Dumper::Dumper( $binding_data ) };
+
   # Add information on interrupts assigned to individual CPUs, if they exist
   foreach my $core_data (@core_data) {
     if (exists($interrupt_data{$core_data->{id}})) {
