@@ -47,7 +47,7 @@ has 'leaves'    => ( isa => 'ArrayRef[Solaris::LocalityGroup::Leaf]|Undef',
 #
 # So that we don't mark too many CPUs unusable, expecially for NICs that are not
 # even in use, we want to take the data we retrieved into attribute nics_in_use
-# and ignore any other interrupts 
+# and ignore any other interrupts
 #
 # Any other drivers generally don't consume much of a CPU, so their not likely
 # to be worth excluding the CPU from our binding.
@@ -62,7 +62,7 @@ has 'important_interrupts_re'
                 => ( isa => 'RegexpRef',
                      is  => 'ro',
                      default => sub {
-                       qr/^(nxge|igb|ixgbe)/;
+                       qr/^(nxge|igb|ixgbe|i40e)/;
                      },
                    );
 
@@ -233,7 +233,7 @@ sub _build_lgrp_leaves {
   #foreach my $obj (@objs) {
   #  __PACKAGE__->Cache()->{$obj->id} = $obj;
   #}
-  
+
   # TODO: wantarray() handling
   #return \@objs;
 
@@ -400,7 +400,7 @@ sub _psrset {
     # say "No output from psrset";
     return; # undef
   }
- 
+
   return $stdout;
 }
 
@@ -415,7 +415,7 @@ sub _parse_psrset {
 
   my @pset_cpus;
   # NOTE: cpulist will be space separated
-  my $re = qr/^user \s processor \s set \s 
+  my $re = qr/^user \s processor \s set \s
                (?<psrset_id>\d+) :
                \s processors \s
                (?<cpulist>[^\n]+)\n/smx;
@@ -445,7 +445,7 @@ sub _pbind_Q {
     # say "No output from pbind -Q";
     return; # undef
   }
- 
+
   return $stdout;
 }
 
@@ -476,7 +476,7 @@ sub _parse_pbind_Q {
   #
   # For multi threaded process:
   # lwp id 12628/7360: 254
-  # 
+  #
   #
   my $re = qr{^(?:process \s+ id \s+ (?<pid>\d+) : \s+ (?<cpu>\d+) |
                   lwp \s+ id \s+ (?<pid>\d+) / (?<thread>\d+) : \s+ (?<cpu>\d+)
@@ -524,7 +524,7 @@ sub _pbind_Qc {
     # say "No output from pbind -Qc";
     return; # undef
   }
- 
+
   return $stdout;
 }
 
@@ -586,7 +586,7 @@ sub _build_nics_in_use {
 
   # We only want to NIC interrupts that are "important"
   # my $important_interrupts_re = $self->important_interrupts_re;
-  my $important_interrupts_re = qr/^(nxge|igb|ixgbe)/;
+  my $important_interrupts_re = qr/^(nxge|igb|ixgbe|i40e)/;
 
   while ($output =~ m{^([^:]+):([^\n]+)\n}gsmx) {
     my ($link,$state) = ($1, $2);
@@ -615,7 +615,7 @@ sub _build_platform {
     return; # undef
   }
   my $platform;
-  
+
   if ($output =~ m/banner-name:\s+SPARC\s+Enterprise\s+(M\d000)/smx) {
     $platform = $1;
   } elsif ($output =~ m/banner-name:\s+SPARC\s+(T[457]-[1248])/smx) {
