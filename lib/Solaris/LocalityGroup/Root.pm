@@ -169,6 +169,13 @@ sub _build_lgrp_leaves {
   my $self = shift;
   my @leaves;
 
+  # If there is only one Locality Group in a system, it will be the root
+  # Locality Group, not a Leaf; we need to handle this condition
+  #
+  # lgrpinfo -I prints out the list of Locality Groups.  If it only lists one of
+  # them, then we can dispense with the -C option when getting "leaves", as
+  # there won't be any children
+  #
   # Obtain LG leaf topology
   my $stdout = IPC::System::Simple::capture("$LGRPINFO -cCG");
   # TODO: if command failed, generate an exception
@@ -182,7 +189,7 @@ sub _build_lgrp_leaves {
 
   # Obtain interrupt information
   # Using kstats to obtain this data now, instead of mdb:
-  #       kstat -p 'pci_intrs::config:/(name|pil|cpu|type)/'
+  #       kstat -p '(pci|priq)_intrs::config:/(name|pil|cpu|type)/'
   $stdout = $self->_kstat_interrupts();
   my $interrupts_aref = $self->_parse_kstat_interrupts($stdout);
 
@@ -310,7 +317,7 @@ sub _kstat_interrupts {
   my $self = shift;
 
   my $stdout =
-    IPC::System::Simple::capture("$KSTAT -p 'pci_intrs::config:/^\(?:name|cpu|type|pil\)\$/'");
+    IPC::System::Simple::capture("$KSTAT -p '\(?:pci|priq\)_intrs::config:/^\(?:name|cpu|type|pil\)\$/'");
 
   return $stdout;
 }
@@ -345,8 +352,8 @@ sub _parse_kstat_interrupts {
     my ($key,$statname);
 
     my ($keypart, $value) = split /\s+/, $line;
-    ($key      = $keypart) =~ s{^(pci_intrs:[^:]+:config):.+$}{$1};
-    ($statname = $keypart) =~ s{^pci_intrs:[^:]+:config:(\S+)$}{$1};
+    ($key      = $keypart) =~ s{^((?:pci|priq)_intrs:[^:]+:config):.+$}{$1};
+    ($statname = $keypart) =~ s{^(?:pci|priq)_intrs:[^:]+:config:(\S+)$}{$1};
     if ($statname eq "cpu") {
       $coalesce{$key}->{cpu}  = $value;
     } elsif ($statname eq "name") {
