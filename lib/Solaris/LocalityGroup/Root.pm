@@ -334,7 +334,8 @@ sub _kstat_interrupts {
   my $self = shift;
 
   my $stdout =
-    IPC::System::Simple::capture("$KSTAT -p '\(?:pci|priq\)_intrs::config:/^\(?:name|cpu|type|pil\)\$/'");
+  #IPC::System::Simple::capture("$KSTAT -p '\(?:pci|priq\)_intrs::config:/^\(?:name|cpu|type|pil\)\$/'");
+    IPC::System::Simple::capture("$KSTAT -p '/^\(pci|priq\)_intrs\$/::config:/^\(name|cpu|type|pil\)\$/'");
 
   return $stdout;
 }
