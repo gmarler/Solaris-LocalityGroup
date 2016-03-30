@@ -177,42 +177,59 @@ sub _build_lgrp_leaves {
   # there won't be any children
   #
   # Obtain LG leaf topology
-  my $stdout = IPC::System::Simple::capture("$LGRPINFO -cCG");
-  # TODO: if command failed, generate an exception
-  # say "LGRPINFO:\n$stdout";
-  my $lgrp_specs_aref = $self->_parse_lgrpinfo($stdout);
+  my $out = IPC::System::Simple::capture([0,2], "$LGRPINFO -cCG 2>&1");
+  my $lgrp_specs_aref;
+  # If return code is 2 and STDERR receives "lgrpinfo: No matching lgroups
+  # found!", then this is likely a single LGRP system.  Handle accordingly.
+  if ($IPC::System::Simple::EXITVAL == 0) {
+    $lgrp_specs_aref = $self->_parse_lgrpinfo($out);
+  } elsif (
+    ($IPC::System::Simple::EXITVAL == 2) and
+    ($out =~ m/^lgrpinfo: No matching lgroups found!/)
+   ) {
+    $out = IPC::System::Simple::capture("$LGRPINFO -cG 2>&1");
+    if ($IPC::System::Simple::EXITVAL == 0) {
+      $lgrp_specs_aref = $self->_parse_lgrpinfo($out);
+    } else {
+      say "$LGRPINFO failed with RC: $IPC::System::Simple::EXITVAL [$out]";
+      return;
+    }
+  } else {
+    say "$LGRPINFO failed with RC: $IPC::System::Simple::EXITVAL [$out]";
+    return;
+  }
 
   # Obtain CPU specific info
-  $stdout = IPC::System::Simple::capture(
+  $out = IPC::System::Simple::capture(
     "$KSTAT -p 'cpu_info:::/^\(?:brand|chip_id|core_id|cpu_type|pg_id|device_ID|state|state_begin\)\$/'");
-  my $cpu_specs_aref  = $self->_parse_kstat_cpu_info($stdout);
+  my $cpu_specs_aref  = $self->_parse_kstat_cpu_info($out);
 
   # Obtain interrupt information
   # Using kstats to obtain this data now, instead of mdb:
   #       kstat -p '(pci|priq)_intrs::config:/(name|pil|cpu|type)/'
-  $stdout = $self->_kstat_interrupts();
-  my $interrupts_aref = $self->_parse_kstat_interrupts($stdout);
+  $out = $self->_kstat_interrupts();
+  my $interrupts_aref = $self->_parse_kstat_interrupts($out);
 
   #
   # Obtain pset information
-  $stdout = $self->_psrset();
+  $out = $self->_psrset();
   my $psrset_aref;
-  if ($stdout) {
-    $psrset_aref = $self->_parse_psrset($stdout);
+  if ($out) {
+    $psrset_aref = $self->_parse_psrset($out);
   }
   #say "PSETS:\n" . Dumper( $psrset_aref );
 
   # Obtain single pbind and MCB bound information
   my $pbind_href;
-  $stdout = $self->_pbind_Qc();
-  if (defined($stdout) && (length($stdout) == 1) && ($stdout == 2)) {
+  $out = $self->_pbind_Qc();
+  if (defined($out) && (length($out) == 1) && ($out == 2)) {
     # Must be an older version of Solaris
-    $stdout = $self->_pbind_Q();
-    if (defined($stdout)) {
-      $pbind_href = $self->_parse_pbind_Q($stdout);
+    $out = $self->_pbind_Q();
+    if (defined($out)) {
+      $pbind_href = $self->_parse_pbind_Q($out);
     }
-  } elsif (defined($stdout)) {
-    $pbind_href = $self->_parse_pbind_Qc($stdout);
+  } elsif (defined($out)) {
+    $pbind_href = $self->_parse_pbind_Qc($out);
   }
 
   #say "BINDINGS:\n" . Dumper( $pbind_href );
@@ -254,7 +271,7 @@ sub _parse_lgrpinfo {
   my @ctor_args;
 
   my $re =
-    qr{^lgroup \s+ (?<lgroup>\d+) \s+ \(leaf\):\n
+    qr{^lgroup \s+ (?<lgroup>\d+) \s+ \(leaf|root\):\n
        ^ \s+ CPUs: \s+ (?<cpufirst>\d+)-(?<cpulast>\d+)   \n
       }smx;
 
