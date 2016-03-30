@@ -271,7 +271,7 @@ sub _parse_lgrpinfo {
   my @ctor_args;
 
   my $re =
-    qr{^lgroup \s+ (?<lgroup>\d+) \s+ \(leaf|root\):\n
+    qr{^lgroup \s+ (?<lgroup>\d+) \s+ \((?:leaf|root)\):\n
        ^ \s+ CPUs: \s+ (?<cpufirst>\d+)-(?<cpulast>\d+)   \n
       }smx;
 
