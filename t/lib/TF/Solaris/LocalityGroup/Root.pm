@@ -278,6 +278,11 @@ sub test_constructor_mocked {
       no warnings 'redefine';   # Because we're redefining 'capture' here
       local *IPC::System::Simple::capture = sub {
         my $cmd = shift;
+        # If we passed the optional array ref of valid return codes as the first
+        # argument, then skip to the next arg, which is the command:
+        if (ref($cmd) eq "ARRAY") {
+          $cmd = shift;
+        }
 
         # say "Inside capture() mock, TEST NAME == $test_name";
 
@@ -285,7 +290,7 @@ sub test_constructor_mocked {
           return $mock_output->{$test_name}->{lgrpinfo}
         } elsif ($cmd =~ m/^$KSTAT\s+\-p\s+\'cpu_info/) {
           return $mock_output->{$test_name}->{kstat};
-        } elsif ($cmd =~ m/^$KSTAT\s+\-p\s+\'pci_intr/) {
+        } elsif ($cmd =~ m/^$KSTAT\s+\-p\s+\'\S+?pci\S+?_intrs/) {
           return $mock_output->{$test_name}->{interrupts};
         } elsif ($cmd =~ m/^$DLADM\s+show\-ether/) {
           return $mock_output->{$test_name}->{dladm_show_ether};
@@ -395,7 +400,7 @@ sub _parse_lgrpinfo {
   my @ctor_args;
 
   my $re =
-    qr{^lgroup \s+ (?<lgroup>\d+) \s+ \(leaf\):\n
+    qr{^lgroup \s+ (?<lgroup>\d+) \s+ \((?:leaf|root)\):\n
        ^ \s+ CPUs: \s+ (?<cpufirst>\d+)-(?<cpulast>\d+)   \n
       }smx;
 
