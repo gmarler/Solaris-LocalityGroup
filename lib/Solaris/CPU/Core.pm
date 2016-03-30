@@ -26,13 +26,15 @@ Readonly::Scalar my $KSTAT  => '/bin/kstat';
 # be 'retired' from the core pipeline per clock cycle
 my $exec_per_core = {
   # NOTE: OPL values may NOT be correct
-  'SPARC64-VII+'   => 2,  
+  'SPARC64-VII+'   => 2,
   'SPARC64-VII'    => 2,
   'UltraSPARC-T2'  => 1,
   'UltraSPARC-T2+' => 1,
   'SPARC-T3'       => 1,
   'SPARC-T4'       => 2,
   'SPARC-T5'       => 2,
+  'SPARC-M7'       => 2,
+  'SPARC-T7'       => 2,
 };
 
 #
